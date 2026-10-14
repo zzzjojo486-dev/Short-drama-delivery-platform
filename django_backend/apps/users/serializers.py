@@ -36,6 +36,10 @@ class RegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError("密码至少需要6个字符")
         if len(value) > 128:
             raise serializers.ValidationError("密码不能超过128个字符")
+        has_letter = any(c.isalpha() for c in value)
+        has_digit = any(c.isdigit() for c in value)
+        if not (has_letter or has_digit):
+            raise serializers.ValidationError("必须包含字母+数字")
         return value
 
     def validate_nickname(self, value):

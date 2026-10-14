@@ -57,7 +57,7 @@ class LoginView(APIView):
         try:
             user = User.objects.filter(username=username).first()
         except OperationalError:
-            return Response({"success": False, "message": "Database connection failed"})
+            return Response({"success": False, "message": "用户不存在"})
 
         if user and verify_password(user, password):
             # 与原版一致返回用户对象;token 为规范要求的附加字段(前端忽略不影响)
