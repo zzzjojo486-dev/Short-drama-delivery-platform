@@ -1,0 +1,25 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('安装依赖') {
+            steps {
+                sh '''
+                    cd django_backend
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+        stage('运行测试') {
+            steps {
+                sh '''
+                    cd django_backend
+                    . venv/bin/activate
+                    python manage.py test apps.users --noinput
+                '''
+            }
+        }
+    }
+}
