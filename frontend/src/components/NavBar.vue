@@ -61,7 +61,7 @@ onUnmounted(() => {
   <nav class="sticky top-0 left-0 right-0 h-14 bg-white border-b border-gray-100 z-50 px-4 flex items-center justify-between relative">
     <!-- Logo -->
     <div class="flex items-center cursor-pointer" @click="router.push('/')">
-      <img src="/logo2.png" alt="小红书" class="h-8 object-contain" />
+      <img src="/logo2.png" alt="短剧交付平台" class="h-8 object-contain" />
     </div>
 
     <!-- Search (Centered on desktop, expanded on mobile) -->

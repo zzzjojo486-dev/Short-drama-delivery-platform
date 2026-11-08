@@ -51,7 +51,7 @@ const handleSubmit = async () => {
     if (isLogin.value) {
       const res = await login(form.value.username, form.value.password)
       if (res.data.success) {
-        userStore.login(res.data.user)
+        userStore.login(res.data.user, res.data.token)
         ElMessage.success('登录成功')
         router.push('/')
       } else {
@@ -171,6 +171,11 @@ const handleSubmit = async () => {
           <button @click="isLogin = !isLogin; agree = false; avatarFile = null; avatarPreview = null" class="text-xhs-red font-medium hover:underline ml-1">
             {{ isLogin ? '去注册' : '去登录' }}
           </button>
+        </div>
+
+        <!-- 独立的后台登录入口(凭证与前台完全隔离) -->
+        <div class="mt-8 text-center text-xs text-gray-400">
+          <router-link to="/admin/login" class="hover:text-gray-600">进入管理后台 →</router-link>
         </div>
 
         <!-- Social Login (Only show on Login) -->

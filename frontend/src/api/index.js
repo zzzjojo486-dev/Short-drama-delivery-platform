@@ -113,3 +113,11 @@ export const getImageUrl = (path) => {
   const filename = path.split(/[\\/]/).pop()
   return `http://localhost:8000/assets/${filename}`
 }
+
+// Admin APIs (后台)
+// 后台凭证独立存放:只读 localStorage 的 admin_token,与前台 token 完全隔离,互不穿越。
+const adminAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` })
+export const getAdminUsers = () => api.get('/admin/users/', { headers: adminAuthHeader() })
+export const updateUserRole = (userId, role) => api.patch(`/admin/users/${userId}/role/`, { role }, { headers: adminAuthHeader() })
+export const getPendingDeliveries = () => api.get('/admin/reviews/deliveries/', { headers: adminAuthHeader() })
+export const reviewDelivery = (id, action, opinion) => api.post(`/admin/deliveries/${id}/review/`, { action, opinion }, { headers: adminAuthHeader() })

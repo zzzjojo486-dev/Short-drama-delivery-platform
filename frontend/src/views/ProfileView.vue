@@ -386,7 +386,7 @@ const goToChat = () => {
         </div>
       </div>
       <h1 class="mt-4 text-xl font-bold text-gray-900">{{ user.nickname }}</h1>
-      <p class="text-gray-500 text-sm mt-1">小红书号: {{ user.username }}</p>
+      <p class="text-gray-500 text-sm mt-1">短剧号: {{ user.username }}</p>
       
       <!-- Follow Counts -->
       <div class="flex gap-6 mt-3 text-sm">
@@ -549,7 +549,7 @@ const goToChat = () => {
                 >
                 <div class="truncate pr-2">
                   <h4 class="text-[15px] font-medium text-gray-900 truncate leading-snug">{{ item.nickname }}</h4>
-                  <p class="text-xs text-gray-400 truncate mt-0.5">小红书号：{{ item.username }}</p>
+                  <p class="text-xs text-gray-400 truncate mt-0.5">短剧号：{{ item.username }}</p>
                 </div>
               </div>
               

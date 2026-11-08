@@ -573,7 +573,7 @@ const closeDetail = () => {
         <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-2">
           <div class="flex items-center gap-1">
             <!-- <img src="/logo2.png" class="h-4 object-contain"> -->
-            <span class="text-xs text-gray-400">小红书 - 你的生活指南</span>
+            <span class="text-xs text-gray-400">短剧交付平台</span>
           </div>
           <div class="text-xs text-gray-300">长按识别二维码</div>
         </div>

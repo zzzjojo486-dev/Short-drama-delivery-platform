@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from .auth import create_access_token
 from .models import User
+from .permissions import IsAdminStaff ,STAFF_ROLES
 from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 from .utils import save_image
 
@@ -68,6 +69,36 @@ class LoginView(APIView):
                 "token": token,
             })
         return Response({"success": False, "message": "用户名或密码错误"})
+
+class AdminLoginView(APIView):
+    """POST /api/login - 用户登录(JSON body: username/password)。"""
+
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"success": False, "message": first_error(serializer)})
+
+        username = serializer.validated_data["username"]
+        password = serializer.validated_data["password"]
+
+        try:
+            user = User.objects.filter(username=username).first()
+
+        except OperationalError:
+            return Response({"success": False, "message": "用户不存在"})
+
+        if user and verify_password(user, password):
+            # 与原版一致返回用户对象;token 为规范要求的附加字段(前端忽略不影响)
+            if user.role not in STAFF_ROLES:
+                return Response({"success": False, "message": '用户权限不足'})
+            token = create_access_token(data={"sub": str(user.id)})
+            return Response({
+                "success": True,
+                "user": UserSerializer(user).data,
+                "token": token,
+            })
+        return Response({"success": False, "message": "用户名或密码错误"})
+
 
 
 class RegisterView(APIView):
@@ -175,3 +206,35 @@ def serve_asset(request, filename):
         response["Access-Control-Allow-Origin"] = "*"
         return response
     return JsonResponse({"detail": "Image not found"}, status=404)
+
+
+"""后台"""
+
+class AdminListView(APIView):
+    """GET /api/admin/users/ - 后台用户列表,仅后台角色可访问。"""
+    permission_classes = [IsAdminStaff]
+    def get(self, request):
+        users = User.objects.all().order_by('-id')
+        return Response({"success": True, "users": UserSerializer(users, many=True).data})
+
+class AdminUserRoleView(APIView):
+    permission_classes = [IsAdminStaff]
+
+    def patch(self, request,user_id):
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({"success": False, "message": "用户不存在"},status=status.HTTP_404_NOT_FOUND)
+
+        role = request.data.get("role")
+        try:
+            role = int(role)
+        except (TypeError, ValueError):
+            return Response({"success":False,"message":"角色权限参数错误"})
+
+        if role not in (0,1,2,3):
+            return Response({"success": False,"message":'取值错误' })
+        user.role = role
+        user.save()
+        return Response({"success": True, "user": UserSerializer(user).data})
+

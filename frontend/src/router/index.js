@@ -3,6 +3,8 @@ import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/LoginView.vue'
 import PublishView from '../views/PublishView.vue'
 import { useUserStore } from '../stores/user'
+import { useAdminStore } from '../stores/admin'
+import AdminLoginView from '../views/admin/AdminLoginView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,6 +30,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      meta: { hideNavBar: true, hideTabBar: true }
+    },
+    {
+      path: '/admin/login',
+      name: 'admin-login',
+      component: AdminLoginView,
       meta: { hideNavBar: true, hideTabBar: true }
     },
     {
@@ -78,14 +86,29 @@ const router = createRouter({
       name: 'chat',
       component: () => import('../views/ChatView.vue'),
       meta: { requiresAuth: true, hideNavBar: true, hideTabBar: true }
+    },
+    {
+      path: '/admin',
+      component: () => import('../views/admin/AdminLayout.vue'),
+      meta: { requiresAdmin: true, hideNavBar: true, hideTabBar: true },
+      children: [
+        { path: '', redirect: '/admin/users' },
+        { path: 'users', name: 'admin-users', component: () => import('../views/admin/AdminUsers.vue') },
+        { path: 'reviews', name: 'admin-reviews', component: () => import('../views/admin/AdminReviews.vue') }
+      ]
     }
   ]
 })
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
+  const adminStore = useAdminStore()
+  // 前台页面:认前台登录
   if (to.meta.requiresAuth && !userStore.user) {
     next('/login')
+  } else if (to.meta.requiresAdmin && !adminStore.token) {
+    // 后台页面:只认后台自己的 admin_token,与前台互不干涉
+    next('/admin/login')
   } else {
     next()
   }

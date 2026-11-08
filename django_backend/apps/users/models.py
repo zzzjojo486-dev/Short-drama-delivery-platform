@@ -27,6 +27,13 @@ class User(AbstractBaseUser):
     nickname = models.CharField(max_length=50, null=True, blank=True)
     avatar_url = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    choices = (
+    ('Admin',0),
+    ('Operations',1),
+    ('Auditor',2),
+    ('User',3),
+    )
+    role = models.IntegerField(choices=choices, default=3)
 
     # users 表没有 last_login 列,移除 AbstractBaseUser 的该 DB 字段
     last_login = None
@@ -40,3 +47,4 @@ class User(AbstractBaseUser):
 
     class Meta:
         db_table = "users"
+        verbose_name = "user"

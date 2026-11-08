@@ -5,6 +5,7 @@ from apps.users.views import serve_asset
 
 urlpatterns = [
     path("api/", include("apps.users.urls")),
+    path("api/", include("apps.orders.urls")),
     # 与原 FastAPI 的 /assets/{filename} 路由保持一致
     path("assets/<str:filename>", serve_asset, name="asset"),
 ]
