@@ -2,11 +2,12 @@
 import { ref } from 'vue'
 import { useUserStore } from '../stores/user'
 import { login, register } from '../api'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 
 const isLogin = ref(true)
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const agree = ref(false)
 const fileInput = ref(null)
@@ -50,29 +51,24 @@ const handleSubmit = async () => {
   try {
     if (isLogin.value) {
       const res = await login(form.value.username, form.value.password)
-      if (res.data.success) {
-        userStore.login(res.data.user, res.data.token)
+      if (res.data.code === 200) {
+        userStore.login(res.data.data.user, res.data.data.token)
         ElMessage.success('登录成功')
-        router.push('/')
-      } else {
-        ElMessage.error(res.data.message)
+        const redirect = route.query.redirect
+        await router.replace(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
       }
     } else {
       const res = await register(form.value.username, form.value.password, form.value.nickname, avatarFile.value)
-      if (res.data.success) {
+      if (res.data.code === 200) {
         ElMessage.success('注册成功，请登录')
         isLogin.value = true
         // Reset form
         form.value = { username: '', password: '', nickname: '' }
         avatarFile.value = null
         avatarPreview.value = null
-      } else {
-        ElMessage.error(res.data.message)
       }
     }
-  } catch (e) {
-    ElMessage.error('操作失败，请检查网络')
-  }
+  } catch (e) {}
 }
 </script>
 

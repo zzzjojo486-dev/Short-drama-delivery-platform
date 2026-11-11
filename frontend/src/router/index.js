@@ -94,7 +94,10 @@ const router = createRouter({
       children: [
         { path: '', redirect: '/admin/users' },
         { path: 'users', name: 'admin-users', component: () => import('../views/admin/AdminUsers.vue') },
-        { path: 'reviews', name: 'admin-reviews', component: () => import('../views/admin/AdminReviews.vue') }
+        { path: 'reviews', name: 'admin-reviews', component: () => import('../views/admin/AdminReviews.vue') },
+        { path: 'orders', name: 'admin-orders', component: () => import('../views/admin/AdminOrders.vue') },
+        { path: 'orders/create', name: 'admin-orders-create', component: () => import('../views/admin/AdminOrderCreate.vue') },
+        { path: 'orders/:id', name: 'admin-order-detail', component: () => import('../views/admin/AdminOrderDetail.vue') }
       ]
     }
   ]
@@ -104,8 +107,8 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const adminStore = useAdminStore()
   // 前台页面:认前台登录
-  if (to.meta.requiresAuth && !userStore.user) {
-    next('/login')
+  if (to.meta.requiresAuth && (!userStore.user || !userStore.token)) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
   } else if (to.meta.requiresAdmin && !adminStore.token) {
     // 后台页面:只认后台自己的 admin_token,与前台互不干涉
     next('/admin/login')

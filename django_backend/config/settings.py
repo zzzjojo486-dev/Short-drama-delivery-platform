@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "apps.users",
     "apps.orders",
+    "apps.post"
 ]
 
 MIDDLEWARE = [
@@ -98,6 +99,8 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     "UNAUTHENTICATED_USER": None,
+    # 统一三层响应 {code, message, data}:把 DRF 默认错误(403/401/404)也包成三层
+    "EXCEPTION_HANDLER": "apps.common.response.api_exception_handler",
 }
 
 # --- CORS:允许来源与原 server.py 一致 ---

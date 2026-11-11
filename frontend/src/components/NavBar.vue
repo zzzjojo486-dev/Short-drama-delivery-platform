@@ -40,7 +40,9 @@ const fetchUnread = async () => {
   if (userStore.user) {
     try {
       const res = await getUnreadCount(userStore.user.id)
-      unreadCount.value = res.data.count
+      if (res.data.code === 200) {
+        unreadCount.value = res.data.data.count
+      }
     } catch (e) {
       // silent error
     }

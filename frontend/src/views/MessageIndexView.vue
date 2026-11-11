@@ -19,7 +19,9 @@ const fetchConversations = async () => {
   if (!userStore.user) return
   try {
     const res = await getConversations(userStore.user.id)
-    conversations.value = res.data.conversations
+    if (res.data.code === 200) {
+      conversations.value = res.data.data.conversations
+    }
   } catch (e) {
     console.error(e)
   }
@@ -29,11 +31,13 @@ const fetchNotifications = async () => {
   if (!userStore.user) return
   try {
     const res = await getNotifications(userStore.user.id)
-    notifications.value = res.data.notifications
+    if (res.data.code === 200) {
+      notifications.value = res.data.data.notifications
+    }
     
     // Mark as read immediately when fetching (simple strategy)
     // Or we could do it when tab is switched
-    if (notifications.value.some(n => !n.is_read)) {
+    if (activeTab.value === 'notifications' && notifications.value.some(n => !n.is_read)) {
         await markNotificationsRead(userStore.user.id)
     }
   } catch (e) {

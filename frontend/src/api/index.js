@@ -1,10 +1,35 @@
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api',
+  // 相对路径 /api —— 由 Vite dev 代理转发到 Django(127.0.0.1:8000),同源请求,规避浏览器代理拦截/CORS/IPv6
+  baseURL: '/api',
 })
 
+// JSON 接口统一按 code === 200 判断成功，保留 Axios 响应供页面读取 data。
+api.interceptors.response.use(
+  (response) => {
+    const d = response.data
+    if (!d || typeof d !== 'object' || d.code !== 200) {
+      const message = d?.message || '接口响应格式错误'
+      ElMessage.error(message)
+      return Promise.reject(Object.assign(new Error(message), { response }))
+    }
+    return response
+  },
+  (error) => {
+    const d = error.response ? error.response.data : null
+    if (d && typeof d === 'object' && typeof d.message === 'string') {
+      ElMessage.error(d.message)
+    } else {
+      ElMessage.error('请求失败，请检查网络')
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const login = (username, password) => api.post('/login', { username, password })
+export const adminLogin = (username, password) => api.post('/admin/login', { username, password })
 export const register = (username, password, nickname, avatar) => {
   const formData = new FormData()
   formData.append('username', username)
@@ -73,7 +98,7 @@ export const markNotificationsRead = (userId) => api.put('/notifications/read', 
 // export const aiPolish = (content) => api.post('/ai/polish', { content })
 export const aiPolishStream = async (content, onChunk, onError) => {
   try {
-    const response = await fetch('http://localhost:8000/api/ai/polish', {
+    const response = await fetch('/api/ai/polish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -111,7 +136,7 @@ export const getImageUrl = (path) => {
   }
   // path might be absolute "assets/..." or just filename
   const filename = path.split(/[\\/]/).pop()
-  return `http://localhost:8000/assets/${filename}`
+  return `/assets/${filename}`
 }
 
 // Admin APIs (后台)
@@ -121,3 +146,17 @@ export const getAdminUsers = () => api.get('/admin/users/', { headers: adminAuth
 export const updateUserRole = (userId, role) => api.patch(`/admin/users/${userId}/role/`, { role }, { headers: adminAuthHeader() })
 export const getPendingDeliveries = () => api.get('/admin/reviews/deliveries/', { headers: adminAuthHeader() })
 export const reviewDelivery = (id, action, opinion) => api.post(`/admin/deliveries/${id}/review/`, { action, opinion }, { headers: adminAuthHeader() })
+
+// 商单（T1.1）——列表返回 DRF 分页信封 {count, next, previous, results}，筛参 status/category/search(标题)
+export const getAdminOrders = (params = {}) => api.get('/admin/orders/', { headers: adminAuthHeader(), params })
+export const createAdminOrder = (data) => api.post('/admin/orders/', data, { headers: adminAuthHeader() })
+export const getAdminOrderDetail = (id) => api.get(`/admin/orders/${id}/`, { headers: adminAuthHeader() })
+export const updateAdminOrder = (id, data) => api.patch(`/admin/orders/${id}/`, data, { headers: adminAuthHeader() })
+export const submitAdminOrder = (id) => api.post(`/admin/orders/${id}/submit/`, {}, { headers: adminAuthHeader() })
+export const reviewAdminOrder = (id, action, opinion) => api.post(`/admin/orders/${id}/review/`, { action, opinion }, { headers: adminAuthHeader() })
+export const completeAdminOrder = (id) => api.post(`/admin/orders/${id}/complete/`, {}, { headers: adminAuthHeader() })
+export const closeAdminOrder = (id) => api.post(`/admin/orders/${id}/close/`, {}, { headers: adminAuthHeader() })
+
+// 报名+指派（T1.2）
+export const getAdminOrderApplications = (id) => api.get(`/admin/orders/${id}/applications/`, { headers: adminAuthHeader() })
+export const selectAdminOrderApplication = (id, aid) => api.post(`/admin/orders/${id}/applications/${aid}/select/`, { selected: true }, { headers: adminAuthHeader() })

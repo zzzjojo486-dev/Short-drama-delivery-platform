@@ -117,3 +117,51 @@ def save_image(uploaded_file):
 
     # 与原版一致:DB 中存相对路径(统一正斜杠,兼容前端与 Streamlit)
     return f"assets/{unique_filename}"
+
+
+# --- 视频:移植自原 backend/utils.py 的 validate_video_file / save_video ---
+ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.mov', '.webm'}
+MAX_VIDEO_SIZE = 10 * 1024 * 1024 * 1024  # 10GB
+
+
+def validate_video_file(uploaded_file):
+    """Validate uploaded video file."""
+    if not uploaded_file.name:
+        return False, "文件名不能为空"
+
+    file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+    if file_ext not in ALLOWED_VIDEO_EXTENSIONS:
+        return False, f"不支持的视频类型，仅支持: {', '.join(ALLOWED_VIDEO_EXTENSIONS)}"
+
+    file_content = uploaded_file.read()
+    uploaded_file.seek(0)  # 重置文件指针
+
+    if len(file_content) > MAX_VIDEO_SIZE:
+        return False, f"视频大小不能超过 {MAX_VIDEO_SIZE // (1024 * 1024 * 1024)}GB"
+
+    if len(file_content) == 0:
+        return False, "文件不能为空"
+
+    return True, "验证通过"
+
+
+def save_video(uploaded_file):
+    """Save uploaded video to assets directory and return the relative path."""
+    is_valid, message = validate_video_file(uploaded_file)
+    if not is_valid:
+        raise ValueError(message)
+
+    video_dir = str(settings.ASSETS_DIR)
+    if not os.path.exists(video_dir):
+        os.makedirs(video_dir)
+
+    file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(video_dir, unique_filename)
+
+    uploaded_file.seek(0)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.read())
+
+    # 与原版一致:DB 中存相对路径(统一正斜杠)
+    return f"assets/{unique_filename}"

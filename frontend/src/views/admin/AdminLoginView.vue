@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { login } from '../../api'
+import { adminLogin } from '../../api'
 import { useAdminStore } from '../../stores/admin'
 
 const adminStore = useAdminStore()
@@ -20,22 +20,19 @@ async function handleSubmit() {
   }
   loading.value = true
   try {
-    const res = await login(form.value.username, form.value.password)
-    if (res.data.success) {
-      const role = res.data.user.role
+    const res = await adminLogin(form.value.username, form.value.password)
+    if (res.data.code === 200) {
+      const role = res.data.data.user.role
       if (!STAFF_ROLES.includes(role)) {
         ElMessage.error('该账号无后台权限')
         return
       }
       // 只写 admin 桶,绝不触碰前台的 token
-      adminStore.login(res.data.user, res.data.token)
+      adminStore.login(res.data.data.user, res.data.data.token)
       ElMessage.success('登录成功')
       router.push('/admin/users')
-    } else {
-      ElMessage.error(res.data.message)
     }
   } catch (e) {
-    ElMessage.error('登录失败，请检查网络')
   } finally {
     loading.value = false
   }

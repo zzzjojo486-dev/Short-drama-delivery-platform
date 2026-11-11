@@ -153,7 +153,7 @@ onUnmounted(() => {
 
 // Listen to route changes to reload data if ID changes
 watch(() => [route.params.id, route.params.postId], ([newId, newPostId]) => {
-    const id = newId || newPostId
+    const id = newPostId || newId
     console.log('Route params changed:', { newId, newPostId, resolvedId: id })
     if (id) loadPostData()
 })
@@ -161,7 +161,7 @@ watch(() => [route.params.id, route.params.postId], ([newId, newPostId]) => {
 const loadPostData = async () => {
   stopAutoPlay()
   currentImageIndex.value = 0
-  const currentPostId = route.params.id || route.params.postId
+  const currentPostId = route.params.postId || route.params.id
   console.log('Loading post data for ID:', currentPostId)
 
   if (!currentPostId) {
@@ -230,7 +230,7 @@ const loadPostData = async () => {
     }
     
     console.log('Post data loaded successfully', postRes.data)
-    post.value = postRes.data
+    post.value = postRes.data.data
     
     // Start auto play if multiple images
     startAutoPlay()
@@ -241,7 +241,7 @@ const loadPostData = async () => {
     if (userStore.user && post.value.user_id !== userStore.user.id) {
        try {
          const followRes = await checkIsFollowing(post.value.user_id, userStore.user.id)
-         isFollowing.value = followRes.data.is_following
+         isFollowing.value = followRes.data.data.is_following
        } catch (e) {
          console.error('Check follow failed', e)
        }
@@ -280,7 +280,9 @@ const fetchComments = async (pid) => {
     // Pass user ID if logged in
     const userId = userStore.user ? userStore.user.id : null
     const res = await getComments(id, userId)
-    comments.value = res.data
+    if (res.data.code === 200) {
+      comments.value = res.data.data
+    }
   } catch (e) {
     console.error(e)
   }
@@ -294,15 +296,11 @@ const handleCommentLike = async (comment) => {
   
   try {
     const res = await toggleCommentLike(comment.id, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
         comment.is_liked = !comment.is_liked
         comment.likes_count = (comment.likes_count || 0) + (comment.is_liked ? 1 : -1)
-    } else {
-        ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('操作失败')
-  }
+  } catch (e) {}
 }
 
 const handleFollow = async () => {
@@ -314,29 +312,21 @@ const handleFollow = async () => {
   
   try {
     const res = await followUser(post.value.user_id, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isFollowing.value = true
       ElMessage.success('关注成功')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('关注失败')
-  }
+  } catch (e) {}
 }
 
 const handleUnfollow = async () => {
   try {
     const res = await unfollowUser(post.value.user_id, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isFollowing.value = false
       ElMessage.success('已取消关注')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('取消关注失败')
-  }
+  } catch (e) {}
 }
 
 const handleLike = async () => {
@@ -344,18 +334,16 @@ const handleLike = async () => {
     ElMessage.warning('请先登录')
     return
   }
-  const currentPostId = route.params.id || route.params.postId
+  const currentPostId = route.params.postId || route.params.id
   if (!currentPostId) return
   try {
     const res = await toggleLike(currentPostId, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isLiked.value = !isLiked.value
       post.value.likes_count += isLiked.value ? 1 : -1
       ElMessage.success(isLiked.value ? '点赞成功' : '已取消点赞')
     }
-  } catch (e) {
-    ElMessage.error('操作失败')
-  }
+  } catch (e) {}
 }
 
 const handleCollect = async () => {
@@ -363,17 +351,15 @@ const handleCollect = async () => {
     ElMessage.warning('请先登录')
     return
   }
-  const currentPostId = route.params.id || route.params.postId
+  const currentPostId = route.params.postId || route.params.id
   if (!currentPostId) return
   try {
     const res = await toggleCollection(currentPostId, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isCollected.value = !isCollected.value
       ElMessage.success(isCollected.value ? '收藏成功' : '已取消收藏')
     }
-  } catch (e) {
-    ElMessage.error('操作失败')
-  }
+  } catch (e) {}
 }
 
 
@@ -407,7 +393,7 @@ const handleShare = async () => {
 
 const downloadImage = () => {
   if (!generatedImage.value) return
-  const currentPostId = route.params.id || route.params.postId || 'unknown'
+  const currentPostId = route.params.postId || route.params.id || 'unknown'
   const link = document.createElement('a')
   link.href = generatedImage.value
   link.download = `xhs-share-${currentPostId}.jpg`
@@ -420,18 +406,16 @@ const handleComment = async () => {
     ElMessage.warning('请先登录')
     return
   }
-  const currentPostId = route.params.id || route.params.postId
+  const currentPostId = route.params.postId || route.params.id
   if (!currentPostId) return
   try {
     const res = await addComment(currentPostId, userStore.user.id, newComment.value)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       ElMessage.success('评论成功')
       newComment.value = ''
       fetchComments()
     }
-  } catch (e) {
-    ElMessage.error('评论失败')
-  }
+  } catch (e) {}
 }
 
 const closeDetail = () => {

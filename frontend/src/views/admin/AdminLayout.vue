@@ -24,6 +24,7 @@ function logout() {
       <el-menu router :default-active="$route.path" class="admin-menu">
         <el-menu-item index="/admin/users">用户管理</el-menu-item>
         <el-menu-item index="/admin/reviews">审核管理</el-menu-item>
+        <el-menu-item index="/admin/orders">商单管理</el-menu-item>
       </el-menu>
     </el-aside>
 

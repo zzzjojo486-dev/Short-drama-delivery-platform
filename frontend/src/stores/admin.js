@@ -7,13 +7,11 @@ export const useAdminStore = defineStore('admin', () => {
   const user = ref(JSON.parse(localStorage.getItem('admin_user') || 'null'))
   const token = ref(localStorage.getItem('admin_token') || '')
 
-  function login(userData, token) {
+  function login(userData, accessToken) {
     user.value = userData
     localStorage.setItem('admin_user', JSON.stringify(userData))
-    if (token) {
-      token.value = token
-      localStorage.setItem('admin_token', token)
-    }
+    token.value = accessToken
+    localStorage.setItem('admin_token', accessToken)
   }
 
   function logout() {

@@ -48,3 +48,30 @@ class User(AbstractBaseUser):
     class Meta:
         db_table = "users"
         verbose_name = "user"
+
+
+class Follow(models.Model):
+    """对应 schema.sql 的 follows 表(关注关系)。"""
+
+    follower_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="following_set", db_column="follower_id")
+    followed_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="follower_set", db_column="followed_id")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "follows"
+        constraints = [
+            models.UniqueConstraint(fields=["follower_id", "followed_id"], name="unique_follow")
+        ]
+
+
+class Message(models.Model):
+    """对应 schema.sql 的 messages 表(私信)。"""
+
+    sender_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages", db_column="sender_id")
+    receiver_id = models.ForeignKey(User, on_delete=models.CASCADE, related_name="received_messages", db_column="receiver_id")
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "messages"

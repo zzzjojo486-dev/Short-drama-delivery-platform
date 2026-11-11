@@ -35,7 +35,9 @@ const fetchPosts = async () => {
   try {
     const searchQuery = route.query.q || ''
     const res = await getPosts(20, 0, searchQuery, activeCategory.value)
-    posts.value = res.data
+    if (res.data.code === 200) {
+      posts.value = res.data.data
+    }
   } catch (e) {
     console.error(e)
   }

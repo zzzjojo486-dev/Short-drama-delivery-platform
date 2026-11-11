@@ -5,13 +5,11 @@ export const useUserStore = defineStore('user', () => {
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const token = ref(localStorage.getItem('token') || '')
 
-  function login(userData, token) {
+  function login(userData, accessToken) {
     user.value = userData
     localStorage.setItem('user', JSON.stringify(userData))
-    if (token) {
-      token.value = token
-      localStorage.setItem('token', token)
-    }
+    token.value = accessToken
+    localStorage.setItem('token', accessToken)
   }
 
   function logout() {
@@ -21,7 +19,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('token')
   }
 
-  return { user, login, logout }
+  return { user, token, login, logout }
 })
 
 

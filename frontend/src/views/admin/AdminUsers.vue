@@ -3,8 +3,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getAdminUsers, updateUserRole } from '../../api'
+import { useAdminStore } from '../../stores/admin'
 
 const router = useRouter()
+const adminStore = useAdminStore()
 const users = ref([])
 const loading = ref(false)
 
@@ -14,7 +16,7 @@ async function loadUsers() {
   loading.value = true
   try {
     const res = await getAdminUsers()
-    users.value = res.data.users || []
+    users.value = res.data.data.users || []
   } catch (e) {
     if (e.response && e.response.status === 403) {
       ElMessage.error('无权限访问后台')
@@ -49,7 +51,7 @@ onMounted(loadUsers)
       <el-table-column prop="nickname" label="昵称" />
       <el-table-column label="角色" width="140">
         <template #default="{ row }">
-          <el-select v-model="row.role" size="small" @change="changeRole(row)">
+          <el-select v-model="row.role" size="small" :disabled="adminStore.user?.role !== 0" @change="changeRole(row)">
             <el-option v-for="(label, val) in roleLabels" :key="val" :label="label" :value="Number(val)" />
           </el-select>
         </template>

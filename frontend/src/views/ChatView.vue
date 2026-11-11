@@ -67,16 +67,15 @@ const fetchMessages = async () => {
   try {
     const res = await getConversation(targetUserId, userStore.user.id)
     // If new messages arrived, update and scroll
-    if (res.data.messages.length !== messages.value.length || (messages.value.length > 0 && res.data.messages[res.data.messages.length-1].id !== messages.value[messages.value.length-1].id)) {
-        messages.value = res.data.messages
-        scrollToBottom()
-        // Mark as read if last message is from them
-        if (messages.value.length > 0) {
-            const lastMsg = messages.value[messages.value.length - 1]
-            if (lastMsg.sender_id == targetUserId && !lastMsg.is_read) {
-                 await markMessagesRead(userStore.user.id, targetUserId)
-            }
-        }
+    if (res.data.code === 200) {
+      const msgs = res.data.data.messages
+      if (msgs.length !== messages.value.length || (messages.value.length > 0 && msgs[msgs.length-1].id !== messages.value[messages.value.length-1].id)) {
+          messages.value = msgs
+          scrollToBottom()
+          if (messages.value.some(msg => msg.sender_id == targetUserId && !msg.is_read)) {
+            await markMessagesRead(userStore.user.id, targetUserId)
+          }
+      }
     }
   } catch (e) {
     console.error(e)
@@ -88,7 +87,9 @@ const fetchMessages = async () => {
 const fetchTargetUser = async () => {
   try {
     const res = await getPublicUserProfile(targetUserId)
-    targetUser.value = res.data.user
+    if (res.data.code === 200) {
+      targetUser.value = res.data.data.user
+    }
   } catch (e) {
     ElMessage.error('用户不存在')
     router.push('/messages')
@@ -98,19 +99,18 @@ const fetchTargetUser = async () => {
 const handleSend = async () => {
   if (!newMessage.value.trim()) return
   
+  const content = newMessage.value
   try {
-    const content = newMessage.value
-    newMessage.value = '' // Optimistic clear
+    newMessage.value = ''
     
     const res = await sendMessage(userStore.user.id, targetUserId, content)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       await fetchMessages()
     } else {
-      ElMessage.error(res.data.message || '发送失败')
-      newMessage.value = content // Restore on fail
+      newMessage.value = content // Restore on fail (toast 由拦截器统一弹)
     }
   } catch (e) {
-    ElMessage.error('发送失败')
+    if (!newMessage.value) newMessage.value = content
   }
 }
 

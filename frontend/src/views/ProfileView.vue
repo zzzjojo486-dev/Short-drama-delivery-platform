@@ -70,7 +70,9 @@ const fetchUserContent = async () => {
   // Fetch follow counts
   try {
     const res = await getFollowCounts(user.value.id)
-    followCounts.value = res.data.counts
+    if (res.data.code === 200) {
+      followCounts.value = res.data.data.counts
+    }
   } catch (e) {
     console.error('Error fetching follow counts', e)
   }
@@ -79,7 +81,9 @@ const fetchUserContent = async () => {
   if (!isOwnProfile.value && userStore.user) {
     try {
       const res = await checkIsFollowing(user.value.id, userStore.user.id)
-      isFollowing.value = res.data.is_following
+      if (res.data.code === 200) {
+        isFollowing.value = res.data.data.is_following
+      }
     } catch (e) {
       console.error(e)
     }
@@ -91,13 +95,19 @@ const fetchUserContent = async () => {
       // Pass current user ID to see private posts if owner
       const currentUserId = userStore.user ? userStore.user.id : null
       const res = await getUserPosts(user.value.id, currentUserId)
-      posts.value = res.data
+      if (res.data.code === 200) {
+        posts.value = res.data.data
+      }
     } else if (activeTab.value === 'likes') {
       const res = await getUserLikedPosts(user.value.id)
-      likedPosts.value = res.data
+      if (res.data.code === 200) {
+        likedPosts.value = res.data.data
+      }
     } else if (activeTab.value === 'collect') {
       const res = await getUserCollectedPosts(user.value.id)
-      collectedPosts.value = res.data
+      if (res.data.code === 200) {
+        collectedPosts.value = res.data.data
+      }
     }
   } catch (e) {
     console.error(e)
@@ -110,7 +120,9 @@ const loadUser = async () => {
   if (routeId) {
     try {
       const res = await getPublicUserProfile(routeId)
-      user.value = res.data.user
+      if (res.data.code === 200) {
+        user.value = res.data.data.user
+      }
     } catch (e) {
       ElMessage.error('用户不存在')
       router.push('/')
@@ -174,17 +186,13 @@ const saveProfile = async () => {
 
   try {
     const res = await updateProfile(formData)
-    if (res.data.success) {
-      userStore.login(res.data.user)
-      user.value = res.data.user
+    if (res.data.code === 200) {
+      userStore.login(res.data.data.user)
+      user.value = res.data.data.user
       isEditing.value = false
       ElMessage.success('保存成功')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('保存失败')
-  }
+  } catch (e) {}
 }
 
 const goToDetail = (id, event) => {
@@ -221,16 +229,13 @@ const handleDeletePost = async (postId) => {
     })
     
     const res = await deletePost(postId, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       ElMessage.success('删除成功')
       fetchUserContent()
-    } else {
-      ElMessage.error(res.data.message || '删除失败')
     }
   } catch (e) {
     if (e !== 'cancel') {
       console.error(e)
-      ElMessage.error('操作失败')
     }
   }
 }
@@ -238,18 +243,15 @@ const handleDeletePost = async (postId) => {
 const handleTogglePrivacy = async (postId, newStatus) => {
   try {
     const res = await updatePostVisibility(postId, userStore.user.id, newStatus)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       ElMessage.success(newStatus ? '已设为仅自己可见' : '已设为公开')
       const post = posts.value.find(p => p.id === postId)
       if (post) {
         post.is_private = newStatus
       }
-    } else {
-      ElMessage.error(res.data.message || '操作失败')
     }
   } catch (e) {
     console.error(e)
-    ElMessage.error('操作失败')
   }
 }
 
@@ -261,31 +263,23 @@ const handleFollow = async () => {
   }
   try {
     const res = await followUser(user.value.id, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isFollowing.value = true
       followCounts.value.followers++ // Optimistic update
       ElMessage.success('关注成功')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('关注失败')
-  }
+  } catch (e) {}
 }
 
 const handleUnfollow = async () => {
   try {
     const res = await unfollowUser(user.value.id, userStore.user.id)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       isFollowing.value = false
       followCounts.value.followers-- // Optimistic update
       ElMessage.success('已取消关注')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('取消关注失败')
-  }
+  } catch (e) {}
 }
 
 const openFollowList = async (type) => {
@@ -298,8 +292,10 @@ const openFollowList = async (type) => {
       ? await getFollowers(user.value.id, userStore.user?.id)
       : await getFollowing(user.value.id, userStore.user?.id)
     
-    // Response format: { success: true, followers: [...] } or { success: true, following: [...] }
-    followList.value = type === 'followers' ? res.data.followers : res.data.following
+    // Response format: code 200 时 data 为 {followers: [...]} 或 {following: [...]}
+    if (res.data.code === 200) {
+      followList.value = type === 'followers' ? res.data.data.followers : res.data.data.following
+    }
   } catch (e) {
     console.error(e)
     ElMessage.error('获取列表失败')
@@ -331,7 +327,7 @@ const handleListFollow = async (item) => {
 
         // Unfollow
         const res = await unfollowUser(item.id, userStore.user.id)
-        if (res.data.success) {
+        if (res.data.code === 200) {
             item.is_following = 0
             if (isOwnProfile.value) {
                 followCounts.value.following--
@@ -347,7 +343,7 @@ const handleListFollow = async (item) => {
     } else {
         // Follow
         const res = await followUser(item.id, userStore.user.id)
-        if (res.data.success) {
+        if (res.data.code === 200) {
             item.is_following = 1
             if (isOwnProfile.value) {
                 followCounts.value.following++

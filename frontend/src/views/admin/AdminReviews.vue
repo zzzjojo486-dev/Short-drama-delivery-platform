@@ -19,7 +19,7 @@ async function loadDeliveries() {
   loading.value = true
   try {
     const res = await getPendingDeliveries()
-    deliveries.value = res.data.deliveries || []
+    deliveries.value = res.data.data.deliveries || []
   } catch (e) {
     if (e.response && e.response.status === 403) {
       ElMessage.error('无权限访问后台')

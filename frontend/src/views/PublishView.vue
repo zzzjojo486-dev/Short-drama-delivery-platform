@@ -58,12 +58,14 @@ const handleAIPolish = async () => {
   // 组合标题和正文作为上下文
   const textToPolish = [form.value.title, originalContent].filter(t => t).join('\n\n')
 
+  let failed = false
   await aiPolishStream(
     textToPolish,
     (chunk) => {
       form.value.content += chunk
     },
     (error) => {
+      failed = true
       console.error(error)
       ElMessage.error('AI 润色失败: ' + error)
       if (!form.value.content) {
@@ -74,7 +76,7 @@ const handleAIPolish = async () => {
     }
   )
   isPolishing.value = false
-  ElMessage.success('AI 润色完成！')
+  if (!failed) ElMessage.success('AI 润色完成！')
 }
 
 // --- Image Mode Handlers ---
@@ -171,15 +173,11 @@ const handleSubmit = async () => {
   
   try {
     const res = await createPost(formData)
-    if (res.data.success) {
+    if (res.data.code === 200) {
       ElMessage.success('发布成功')
       router.push('/')
-    } else {
-      ElMessage.error(res.data.message)
     }
-  } catch (e) {
-    ElMessage.error('发布失败: ' + (e.response?.data?.detail || e.message))
-  }
+  } catch (e) {}
 }
 </script>
 
