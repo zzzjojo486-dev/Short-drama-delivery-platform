@@ -1,7 +1,8 @@
+import tempfile
 from unittest.mock import patch
 
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from apps.orders.models import Order, OrderApplication, OrderDelivery, Review
@@ -89,6 +90,7 @@ class AdminOrderTests(TestCase):
             ("post", self.base + "close/", (0, 1)),
             ("get", self.base + "applications/", (0, 1)),
             ("post", self.base + f"applications/{application.id}/select/", (0, 1)),
+            ("post", self.base + "assign/", (0, 1)),
             ("post", self.base + "review/", (0, 2)),
             ("get", "/api/admin/reviews/deliveries/", (0, 2)),
             ("post", f"/api/admin/deliveries/{delivery.id}/review/", (0, 2)),
@@ -101,7 +103,10 @@ class AdminOrderTests(TestCase):
                 with self.subTest(role=role, method=method, url=url):
                     self.set_status(Order.DRAFT)
                     response = getattr(self.client, method)(url)
-                    if role not in allowed:
+                    if role is None:
+                        # 未认证统一 401,与角色无权限(403)区分
+                        self.assertEqual(response.status_code, 401, response.data)
+                    elif role not in allowed:
                         self.assertEqual(response.status_code, 403, response.data)
                         self.assertEqual(response.data["code"], 403)
                     else:
@@ -169,10 +174,16 @@ class AdminOrderTests(TestCase):
         self.post(self.base + "applications/999999/select/", status=404)
 
     def test_complete_requires_progress_and_approved_delivery(self):
+        # 其他商单:有通过交付但无入选创作者 → 拒绝
         other = Order.objects.create(title="其他", publisher=self.users[1], status=Order.PROGRESS)
         OrderDelivery.objects.create(order=other, creator=self.users[3], status=OrderDelivery.APPROVED)
+        self.post(f"/api/admin/orders/{other.id}/complete/", status=400)
+
+        # 本商单:选中 users[3] 为入选创作者
+        self.set_status(Order.ONLINE)
+        OrderApplication.objects.create(order=self.order, creator=self.users[3], selected=True)
         self.set_status(Order.PROGRESS)
-        self.post(self.base + "complete/", status=400)
+        self.post(self.base + "complete/", status=400)  # 无交付
         delivery = OrderDelivery.objects.create(order=self.order, creator=self.users[3])
         for status in (OrderDelivery.PENDING, OrderDelivery.RETURNED):
             delivery.status = status
@@ -272,3 +283,236 @@ class AdminOrderTests(TestCase):
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, Order.COMPLETED)
         self.assertEqual(Review.objects.count(), 3)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class CreatorFlowTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.operator = User.objects.create(username="cfop", role=1)
+        cls.reviewer = User.objects.create(username="cfrev", role=2)
+        cls.creator_a = User.objects.create(username="cfa", role=3)
+        cls.creator_b = User.objects.create(username="cfb", role=3)
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _online_order(self):
+        return Order.objects.create(title="在线商单", publisher=self.operator, status=Order.ONLINE)
+
+    def _progress_order_with(self, creators):
+        order = Order.objects.create(title="进行中商单", publisher=self.operator, status=Order.PROGRESS)
+        for c in creators:
+            OrderApplication.objects.create(order=order, creator=c, selected=True)
+        return order
+
+    def test_list_visibility(self):
+        online = self._online_order()
+        draft = Order.objects.create(title="草稿", publisher=self.operator, status=Order.DRAFT)
+        self.client.force_authenticate(self.creator_a)
+        data = self.client.get("/api/orders/").data["data"]
+        ids = [o["id"] for o in data["results"]]
+        self.assertIn(online.id, ids)
+        self.assertNotIn(draft.id, ids)
+        closed = Order.objects.create(title="已关闭", publisher=self.operator, status=Order.CLOSED)
+        OrderApplication.objects.create(order=closed, creator=self.creator_a)
+        ids = [o["id"] for o in self.client.get("/api/orders/").data["data"]["results"]]
+        self.assertIn(closed.id, ids)
+
+    def test_list_anonymous_401(self):
+        self.assertEqual(self.client.get("/api/orders/").status_code, 401)
+
+    def test_detail_isolates_other_creators(self):
+        order = self._progress_order_with([self.creator_a, self.creator_b])
+        OrderDelivery.objects.create(
+            order=order, creator=self.creator_b,
+            delivery_type=OrderDelivery.LINK, video_url="https://x.com/b",
+        )
+        self.client.force_authenticate(self.creator_a)
+        data = self.client.get(f"/api/orders/{order.id}/").data["data"]
+        self.assertTrue(data["is_selected"])
+        self.assertEqual(data["deliveries"], [])
+        self.assertEqual(data["application"]["creator"], self.creator_a.id)
+
+    def test_apply_online_only_and_duplicate(self):
+        order = self._online_order()
+        self.client.force_authenticate(self.creator_a)
+        r = self.client.post(f"/api/orders/{order.id}/apply/", {"proposal": "我来"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertFalse(r.data["data"]["application"]["selected"])
+        r = self.client.post(f"/api/orders/{order.id}/apply/", {"proposal": "再来"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        draft = Order.objects.create(title="草稿", publisher=self.operator, status=Order.DRAFT)
+        r = self.client.post(f"/api/orders/{draft.id}/apply/", {}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_apply_requires_role3(self):
+        order = self._online_order()
+        self.client.force_authenticate(self.operator)
+        r = self.client.post(f"/api/orders/{order.id}/apply/", {}, format="json")
+        self.assertEqual(r.status_code, 403)
+
+    def test_apply_integrity_backstop(self):
+        order = self._online_order()
+        self.client.force_authenticate(self.creator_a)
+        from unittest.mock import patch
+        with patch("apps.orders.views.OrderApplication.objects.create", side_effect=IntegrityError("dup")):
+            r = self.client.post(f"/api/orders/{order.id}/apply/", {}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_deliver_link_and_duplicate(self):
+        order = self._progress_order_with([self.creator_a])
+        self.client.force_authenticate(self.creator_a)
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "link", "video_url": "https://x.com/a"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["data"]["delivery"]["delivery_type"], OrderDelivery.LINK)
+        self.assertEqual(r.data["data"]["delivery"]["status"], OrderDelivery.PENDING)
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "link", "video_url": "https://x.com/a2"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_deliver_requires_selected(self):
+        order = Order.objects.create(title="进行中", publisher=self.operator, status=Order.PROGRESS)
+        OrderApplication.objects.create(order=order, creator=self.creator_a, selected=False)
+        self.client.force_authenticate(self.creator_a)
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "link", "video_url": "https://x.com/a"}, format="json")
+        self.assertEqual(r.status_code, 403)
+
+    def test_deliver_invalid_url_and_mutual_exclusion(self):
+        order = self._progress_order_with([self.creator_a])
+        self.client.force_authenticate(self.creator_a)
+        for url in ("", "ftp://x.com/a", "not-a-url"):
+            r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "link", "video_url": url}, format="json")
+            self.assertEqual(r.status_code, 400, (url, r.data))
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("v.mp4", b"data", content_type="video/mp4")
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "video", "video_file": f, "video_url": "https://x.com/a"}, format="multipart")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "video"}, format="multipart")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "xxx"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_deliver_video_real_small_file(self):
+        order = self._progress_order_with([self.creator_a])
+        self.client.force_authenticate(self.creator_a)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("clip.mp4", b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64, content_type="video/mp4")
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "video", "video_file": f}, format="multipart")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["data"]["delivery"]["delivery_type"], OrderDelivery.VIDEO)
+        self.assertTrue(r.data["data"]["delivery"]["video_file"])
+
+    def test_deliver_video_wrong_ext(self):
+        order = self._progress_order_with([self.creator_a])
+        self.client.force_authenticate(self.creator_a)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        f = SimpleUploadedFile("clip.avi", b"data", content_type="video/x-msvideo")
+        r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "video", "video_file": f}, format="multipart")
+        self.assertEqual(r.status_code, 400)
+
+    def test_deliver_video_size_limit_streamed(self):
+        order = self._progress_order_with([self.creator_a])
+        self.client.force_authenticate(self.creator_a)
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from unittest.mock import patch
+        f = SimpleUploadedFile("big.mp4", b"x" * 1000, content_type="video/mp4")
+        with patch("apps.orders.views.MAX_DELIVERY_VIDEO_BYTES", 10):
+            r = self.client.post(f"/api/orders/{order.id}/deliver/", {"delivery_type": "video", "video_file": f}, format="multipart")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("1GB", r.data["message"])
+        self.assertEqual(OrderDelivery.objects.filter(order=order, creator=self.creator_a).count(), 0)
+
+
+class AssignAndCompleteTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.operator = User.objects.create(username="acop", role=1)
+        cls.reviewer = User.objects.create(username="acrev", role=2)
+        cls.creator_a = User.objects.create(username="aca", role=3)
+        cls.creator_b = User.objects.create(username="acb", role=3)
+
+    def setUp(self):
+        self.client = APIClient()
+        self.client.force_authenticate(self.operator)
+
+    def test_assign_creates_application(self):
+        order = Order.objects.create(title="指派单", publisher=self.operator, status=Order.ONLINE)
+        r = self.client.post(f"/api/admin/orders/{order.id}/assign/", {"creator_id": self.creator_a.id}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertTrue(r.data["data"]["application"]["selected"])
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.PROGRESS)
+        self.assertTrue(OrderApplication.objects.filter(order=order, creator=self.creator_a, selected=True).exists())
+        r = self.client.post(f"/api/admin/orders/{order.id}/assign/", {"creator_id": self.creator_a.id}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_assign_reuses_existing_application(self):
+        order = Order.objects.create(title="指派单2", publisher=self.operator, status=Order.ONLINE)
+        app = OrderApplication.objects.create(order=order, creator=self.creator_a, proposal="主动报名", selected=False)
+        r = self.client.post(f"/api/admin/orders/{order.id}/assign/", {"creator_id": self.creator_a.id}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        app.refresh_from_db()
+        self.assertTrue(app.selected)
+        self.assertEqual(app.proposal, "主动报名")
+
+    def test_assign_rejects_non_role3_and_terminal(self):
+        order = Order.objects.create(title="指派单3", publisher=self.operator, status=Order.ONLINE)
+        r = self.client.post(f"/api/admin/orders/{order.id}/assign/", {"creator_id": self.reviewer.id}, format="json")
+        self.assertEqual(r.status_code, 400)
+        closed = Order.objects.create(title="已关闭", publisher=self.operator, status=Order.CLOSED)
+        r = self.client.post(f"/api/admin/orders/{closed.id}/assign/", {"creator_id": self.creator_a.id}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_complete_requires_all_selected_approved(self):
+        order = Order.objects.create(title="多创作者", publisher=self.operator, status=Order.PROGRESS)
+        OrderApplication.objects.create(order=order, creator=self.creator_a, selected=True)
+        OrderApplication.objects.create(order=order, creator=self.creator_b, selected=True)
+        OrderDelivery.objects.create(order=order, creator=self.creator_a, status=OrderDelivery.APPROVED)
+        r = self.client.post(f"/api/admin/orders/{order.id}/complete/", format="json")
+        self.assertEqual(r.status_code, 400)
+        OrderDelivery.objects.create(order=order, creator=self.creator_b, status=OrderDelivery.APPROVED)
+        r = self.client.post(f"/api/admin/orders/{order.id}/complete/", format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        order.refresh_from_db()
+        self.assertEqual(order.status, Order.COMPLETED)
+
+    def test_complete_blocked_by_pending(self):
+        order = Order.objects.create(title="有待审", publisher=self.operator, status=Order.PROGRESS)
+        OrderApplication.objects.create(order=order, creator=self.creator_a, selected=True)
+        OrderDelivery.objects.create(order=order, creator=self.creator_a, status=OrderDelivery.APPROVED)
+        OrderDelivery.objects.create(order=order, creator=self.creator_a, status=OrderDelivery.PENDING)
+        r = self.client.post(f"/api/admin/orders/{order.id}/complete/", format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_complete_detail_can_complete_flag(self):
+        order = Order.objects.create(title="标志", publisher=self.operator, status=Order.PROGRESS)
+        OrderApplication.objects.create(order=order, creator=self.creator_a, selected=True)
+        OrderDelivery.objects.create(order=order, creator=self.creator_a, status=OrderDelivery.APPROVED)
+        r = self.client.get(f"/api/admin/orders/{order.id}/").data["data"]["order"]
+        self.assertTrue(r["can_complete"])
+        self.assertIsNone(r["complete_blocked_reason"])
+
+    def test_pending_delivery_list_excludes_terminal(self):
+        order = Order.objects.create(title="进行中单", publisher=self.operator, status=Order.PROGRESS)
+        d1 = OrderDelivery.objects.create(order=order, creator=self.creator_a, status=OrderDelivery.PENDING)
+        closed = Order.objects.create(title="关闭单", publisher=self.operator, status=Order.CLOSED)
+        d2 = OrderDelivery.objects.create(order=closed, creator=self.creator_a, status=OrderDelivery.PENDING)
+        self.client.force_authenticate(self.reviewer)
+        data = self.client.get("/api/admin/reviews/deliveries/").data["data"]
+        ids = [d["id"] for d in data["results"]]
+        self.assertIn(d1.id, ids)
+        self.assertNotIn(d2.id, ids)
+        self.assertEqual([d["id"] for d in data["deliveries"]], ids)
+        r = self.client.post(f"/api/admin/deliveries/{d2.id}/review/", {"action": "approve"}, format="json")
+        self.assertEqual(r.status_code, 400)
+
+    def test_applications_pagination_alias(self):
+        order = Order.objects.create(title="分页报名", publisher=self.operator, status=Order.ONLINE)
+        for i in range(3):
+            u = User.objects.create(username=f"acpg{i}", role=3)
+            OrderApplication.objects.create(order=order, creator=u)
+        data = self.client.get(f"/api/admin/orders/{order.id}/applications/", {"page_size": 2}).data["data"]
+        self.assertEqual(set(data), {"count", "next", "previous", "results", "applications"})
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(len(data["results"]), 2)
+        self.assertEqual(len(data["applications"]), 2)

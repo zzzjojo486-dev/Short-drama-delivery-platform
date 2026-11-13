@@ -47,6 +47,9 @@ class OrderApplication(models.Model):
     class Meta:
         db_table = "order_applications"
         verbose_name = "商单报名表"
+        constraints = [
+            models.UniqueConstraint(fields=["order", "creator"], name="unique_order_creator_application"),
+        ]
 
 class OrderDelivery(models.Model):
     """成品交付记录。视频上传 或 外链,二选一。"""

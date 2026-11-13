@@ -7,9 +7,9 @@
 |---|---|---|---|---|
 | T0.1 | 交付审核接口修复 | 后端 | 完成 | 9 项接口验证全绿:approve→status1 + review.action=1;reject+opinion→status2 + action=2;非法action 4xx;404;403;驳回意见必填已补 |
 | T0.2 | 改角色权限收紧为仅超管 | 后端 | 完成 | 验证:超管可改角色;运营/审核员调用返回 403 |
-| T1.1 | 商单 CRUD/状态流转 | 后端 | 未开始 | |
-| T1.2 | 报名+指派 | 后端 | 未开始 | |
-| T1.3 | 交付提交(视频≤1GB/外链) | 后端 | 未开始 | |
+| T1.1 | 商单 CRUD/状态流转 | 后端 | 完成 | 三层响应+严格结单前置(≥1入选+每人APPROVED+无PENDING)+详情返回 can_complete/complete_blocked_reason；41 后端测试全绿 |
+| T1.2 | 报名+指派 | 后端 | 完成 | apply(ONLINE/role3/去重)+select+新增 assign(creator_id,复用报名/唯一约束兜底)；单测覆盖去重/事务回滚 |
+| T1.3 | 交付提交(视频≤1GB/外链) | 后端 | 完成 | video/link 互斥、MP4 仅限、流式写盘≤1GB、selected 校验、待审列表 deliveries 别名；媒体 Range 服务(200/206/404)冒烟通过 |
 | T1.4 | 前端 /admin/orders | 前端 | 未开始 | |
 | T1.5 | 前端创作者报名/交付入口 | 前端 | 未开始 | |
 | T1.6 | 商单全流程接口测试 | 测试 | 未开始 | 等 T1.1-1.5 |

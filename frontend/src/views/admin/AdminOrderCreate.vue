@@ -8,6 +8,7 @@ const router = useRouter()
 const route = useRoute()
 const editing = ref(false)
 const loading = ref(false)
+const loadError = ref('')
 const saving = ref(false)
 
 const form = ref({ title: '', brief: '', requirement: '', category: '', budget: '' })
@@ -17,6 +18,7 @@ async function loadForEdit() {
   if (!id) return
   editing.value = true
   loading.value = true
+  loadError.value = ''
   try {
     const res = await getAdminOrderDetail(id)
     const d = res.data.data.order
@@ -28,7 +30,7 @@ async function loadForEdit() {
       budget: d.budget || '',
     }
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '加载失败')
+    loadError.value = e.response?.data?.message || '加载失败'
   } finally {
     loading.value = false
   }
@@ -50,7 +52,7 @@ async function save() {
     }
     router.push('/admin/orders')
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '保存失败')
+    // 失败保留表单输入,错误提示由拦截器弹出
   } finally {
     saving.value = false
   }
@@ -62,13 +64,20 @@ onMounted(loadForEdit)
 <template>
   <div>
     <h2 class="text-lg font-semibold mb-4">{{ editing ? '编辑商单' : '创建商单' }}</h2>
-    <el-card v-loading="loading">
+    <el-card v-if="loadError" class="mb-4">
+      <div class="text-center py-6">
+        <p class="text-sm text-red-500 mb-4">{{ loadError }}</p>
+        <el-button type="primary" plain @click="loadForEdit">重试</el-button>
+        <el-button @click="router.push('/admin/orders')">返回列表</el-button>
+      </div>
+    </el-card>
+    <el-card v-else v-loading="loading">
       <el-form label-width="90px" :model="form">
         <el-form-item label="标题" required>
           <el-input v-model="form.title" placeholder="商单标题" maxlength="100" show-word-limit />
         </el-form-item>
         <el-form-item label="简介">
-          <el-input v-model="form.brief" type="textarea" :rows="2" placeholder="需求秒速" />
+          <el-input v-model="form.brief" type="textarea" :rows="2" placeholder="商单简介" />
         </el-form-item>
         <el-form-item label="交付要求">
           <el-input v-model="form.requirement" type="textarea" :rows="4" placeholder="交付要求" />

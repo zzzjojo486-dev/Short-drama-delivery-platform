@@ -1,12 +1,35 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { safeRedirect } from '../utils/redirect'
 
 const api = axios.create({
   // 相对路径 /api —— 由 Vite dev 代理转发到 Django(127.0.0.1:8000),同源请求,规避浏览器代理拦截/CORS/IPv6
   baseURL: '/api',
 })
 
+// 401 只处理一次,避免并发请求重复清会话/重复跳转
+let handlingAuthFailure = false
+
+function handleAuthFailure(error) {
+  if (handlingAuthFailure) return
+  handlingAuthFailure = true
+  const url = error.config?.url || ''
+  const current = window.location.pathname + window.location.search
+  if (url.startsWith('/admin/')) {
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+    const target = current.startsWith('/admin/login') ? '/admin/users' : safeRedirect(current, '/admin/users', '/admin')
+    window.location.assign(`/admin/login?redirect=${encodeURIComponent(target)}`)
+  } else {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    const target = current.startsWith('/login') ? '/' : safeRedirect(current, '/')
+    window.location.assign(`/login?redirect=${encodeURIComponent(target)}`)
+  }
+}
+
 // JSON 接口统一按 code === 200 判断成功，保留 Axios 响应供页面读取 data。
+// 错误提示统一在此弹出一次,页面 catch 只负责状态展示,不再重复弹。
 api.interceptors.response.use(
   (response) => {
     const d = response.data
@@ -18,8 +41,11 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
+    const status = error.response?.status
     const d = error.response ? error.response.data : null
-    if (d && typeof d === 'object' && typeof d.message === 'string') {
+    if (status === 401) {
+      handleAuthFailure(error)
+    } else if (d && typeof d === 'object' && typeof d.message === 'string') {
       ElMessage.error(d.message)
     } else {
       ElMessage.error('请求失败，请检查网络')
@@ -28,17 +54,19 @@ api.interceptors.response.use(
   }
 )
 
-export const login = (username, password) => api.post('/login', { username, password })
-export const adminLogin = (username, password) => api.post('/admin/login', { username, password })
+// 登录类请求单独设置超时:响应被代理/网络层丢失时给出可见错误,而不是永久挂起
+export const login = (username, password) => api.post('/login', { username, password }, { timeout: 15000 })
+export const adminLogin = (username, password) => api.post('/admin/login', { username, password }, { timeout: 15000 })
 export const register = (username, password, nickname, avatar) => {
   const formData = new FormData()
   formData.append('username', username)
   formData.append('password', password)
   if (nickname) formData.append('nickname', nickname)
   if (avatar) formData.append('avatar', avatar)
-  
+
   return api.post('/register', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 30000
   })
 }
 export const getPosts = (limit = 20, offset = 0, search = '', category = '') => 
@@ -144,7 +172,7 @@ export const getImageUrl = (path) => {
 const adminAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}` })
 export const getAdminUsers = () => api.get('/admin/users/', { headers: adminAuthHeader() })
 export const updateUserRole = (userId, role) => api.patch(`/admin/users/${userId}/role/`, { role }, { headers: adminAuthHeader() })
-export const getPendingDeliveries = () => api.get('/admin/reviews/deliveries/', { headers: adminAuthHeader() })
+export const getPendingDeliveries = (params = {}) => api.get('/admin/reviews/deliveries/', { headers: adminAuthHeader(), params })
 export const reviewDelivery = (id, action, opinion) => api.post(`/admin/deliveries/${id}/review/`, { action, opinion }, { headers: adminAuthHeader() })
 
 // 商单（T1.1）——列表返回 DRF 分页信封 {count, next, previous, results}，筛参 status/category/search(标题)
@@ -158,5 +186,41 @@ export const completeAdminOrder = (id) => api.post(`/admin/orders/${id}/complete
 export const closeAdminOrder = (id) => api.post(`/admin/orders/${id}/close/`, {}, { headers: adminAuthHeader() })
 
 // 报名+指派（T1.2）
-export const getAdminOrderApplications = (id) => api.get(`/admin/orders/${id}/applications/`, { headers: adminAuthHeader() })
+export const getAdminOrderApplications = (id, params = {}) => api.get(`/admin/orders/${id}/applications/`, { headers: adminAuthHeader(), params })
 export const selectAdminOrderApplication = (id, aid) => api.post(`/admin/orders/${id}/applications/${aid}/select/`, { selected: true }, { headers: adminAuthHeader() })
+export const assignAdminOrder = (id, creatorId) => api.post(`/admin/orders/${id}/assign/`, { creator_id: creatorId }, { headers: adminAuthHeader() })
+
+// 创作者端（T1.4/T1.5，Bearer 前台 token，与后台凭证隔离）
+const frontAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token') || ''}` })
+export const getCreatorOrders = (params = {}) => api.get('/orders/', { headers: frontAuthHeader(), params })
+export const getCreatorOrderDetail = (id) => api.get(`/orders/${id}/`, { headers: frontAuthHeader() })
+export const applyCreatorOrder = (id, proposal) => api.post(`/orders/${id}/apply/`, { proposal }, { headers: frontAuthHeader() })
+// 提交请求 delivery_type 用 "video"/"link" 字符串区分模式;响应 delivery_type 一律整数 0/1
+export const submitCreatorDelivery = (id, { mode, file, url, note }, onProgress) => {
+  if (mode === 'video') {
+    const formData = new FormData()
+    formData.append('delivery_type', 'video')
+    formData.append('video_file', file)
+    formData.append('note', note || '')
+    return api.post(`/orders/${id}/deliver/`, formData, {
+      headers: { ...frontAuthHeader(), 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: onProgress,
+    })
+  }
+  return api.post(`/orders/${id}/deliver/`, { delivery_type: 'link', video_url: url, note: note || '' }, { headers: frontAuthHeader() })
+}
+
+// 交付视频地址:后端返回绝对 URL 时归一到同源 /media/(dev 走 Vite 代理,支持 Range);其他绝对地址直接播放
+export const getMediaUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('/media/')) return url
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const u = new URL(url)
+      if (u.pathname.startsWith('/media/')) return u.pathname + u.search
+    } catch (e) {
+      return url
+    }
+  }
+  return url
+}

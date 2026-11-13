@@ -52,6 +52,14 @@ const handleMessage = () => {
       <span class="text-[10px] font-medium" :class="isActive('/category') ? 'text-gray-900' : 'text-gray-400'">分区</span>
     </button>
 
+    <!-- Orders -->
+    <button class="flex flex-col items-center gap-1 min-w-[40px]" @click="router.push('/orders')">
+      <svg xmlns="http://www.w3.org/2000/svg" :fill="route.path.startsWith('/orders') ? 'currentColor' : 'none'" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 transition-colors" :class="route.path.startsWith('/orders') ? 'text-gray-900' : 'text-gray-400'">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.886 2.05-1.98 2.146-2.093.184-4.212.279-6.352.279-2.14 0-4.26-.095-6.352-.279-1.094-.096-1.98-1.052-1.98-2.146v-4.25m16.664 0a2.25 2.25 0 0 0-2.083-2.164 48.6 48.6 0 0 0-8.33 0 2.25 2.25 0 0 0-2.083 2.164m16.664 0v-2.106c0-1.094-.886-2.05-1.98-2.146a48.6 48.6 0 0 0-3.02-.196M3.586 14.15v-2.106c0-1.094.886-2.05 1.98-2.146 1.006-.088 2.013-.153 3.02-.196m8.33 0a48.6 48.6 0 0 0-8.33 0m8.33 0v-3.375c0-.621-.504-1.125-1.125-1.125h-2.25c-.621 0-1.125.504-1.125 1.125v3.375" />
+      </svg>
+      <span class="text-[10px] font-medium" :class="route.path.startsWith('/orders') ? 'text-gray-900' : 'text-gray-400'">商单</span>
+    </button>
+
     <!-- Publish (Center Big Button) -->
     <button class="flex flex-col items-center gap-1 bg-xhs-red text-white rounded-xl px-3 py-1 -mt-1 shadow-md shadow-red-100" @click="handlePublish">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">

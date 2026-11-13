@@ -4,12 +4,14 @@ import { useUserStore } from '../stores/user'
 import { login, register } from '../api'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { safeRedirect } from '../utils/redirect'
 
 const isLogin = ref(true)
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const agree = ref(false)
+const submitting = ref(false)
 const fileInput = ref(null)
 const avatarFile = ref(null)
 const avatarPreview = ref(null)
@@ -37,6 +39,7 @@ const handleFileChange = (event) => {
 }
 
 const handleSubmit = async () => {
+  if (submitting.value) return
   if (!agree.value) {
     ElMessage.warning('请阅读并勾选《用户协议》与《隐私政策》')
     return
@@ -48,15 +51,19 @@ const handleSubmit = async () => {
     return
   }
   
+  submitting.value = true
   try {
     if (isLogin.value) {
       const res = await login(form.value.username, form.value.password)
-      if (res.data.code === 200) {
-        userStore.login(res.data.data.user, res.data.data.token)
-        ElMessage.success('登录成功')
-        const redirect = route.query.redirect
-        await router.replace(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/')
+      const { user, token } = res.data.data || {}
+      if (!user || !token) {
+        ElMessage.error('登录响应缺少 user/token 字段，请联系管理员')
+        return
       }
+      userStore.login(user, token)
+      ElMessage.success('登录成功')
+      const redirect = route.query.redirect
+      await router.replace(safeRedirect(redirect, '/'))
     } else {
       const res = await register(form.value.username, form.value.password, form.value.nickname, avatarFile.value)
       if (res.data.code === 200) {
@@ -68,7 +75,15 @@ const handleSubmit = async () => {
         avatarPreview.value = null
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    // API 错误已由拦截器统一提示;此处只暴露页面级异常,避免点击后静默无响应
+    if (!e?.isAxiosError && !e?.response) {
+      console.error('[login] unexpected error:', e)
+      ElMessage.error(isLogin.value ? '登录失败，请刷新页面重试' : '注册失败，请刷新页面重试')
+    }
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -136,9 +151,10 @@ const handleSubmit = async () => {
           
           <button 
             type="submit" 
+            :disabled="submitting"
             class="w-full h-12 bg-xhs-red text-white rounded-full font-semibold hover:bg-red-600 active:scale-[0.98] transition-all text-[16px] shadow-sm mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {{ isLogin ? '登录' : '注册' }}
+            {{ submitting ? (isLogin ? '登录中…' : '注册中…') : (isLogin ? '登录' : '注册') }}
           </button>
 
           <!-- Agreement -->
@@ -164,7 +180,7 @@ const handleSubmit = async () => {
         <!-- Switch Mode -->
         <div class="mt-4 text-center text-sm text-gray-500">
           {{ isLogin ? '还没有账号？' : '已有账号？' }}
-          <button @click="isLogin = !isLogin; agree = false; avatarFile = null; avatarPreview = null" class="text-xhs-red font-medium hover:underline ml-1">
+          <button @click="isLogin = !isLogin; agree = false; avatarFile = null; avatarPreview = null" :disabled="submitting" class="text-xhs-red font-medium hover:underline ml-1 disabled:opacity-50">
             {{ isLogin ? '去注册' : '去登录' }}
           </button>
         </div>

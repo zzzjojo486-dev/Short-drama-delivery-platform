@@ -1,12 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { getAdminOrders } from '../../api'
 
 const router = useRouter()
 const list = ref([])
 const loading = ref(false)
+const loadError = ref('')
 const total = ref(0)
 
 const filters = ref({ status: '', category: '', search: '' })
@@ -19,6 +19,7 @@ const STATUS_TAG = { 0: 'info', 1: 'warning', 2: 'danger', 3: 'success', 4: 'pri
 
 async function load() {
   loading.value = true
+  loadError.value = ''
   try {
     const params = { page: page.value, page_size: pageSize.value }
     if (filters.value.status !== '') params.status = filters.value.status
@@ -29,12 +30,9 @@ async function load() {
     list.value = res.data.data.results
     total.value = res.data.data.count
   } catch (e) {
-    if (e.response && e.response.status === 403) {
-      ElMessage.error('无权限访问后台')
-      router.push('/admin/login')
-    } else {
-      ElMessage.error('加载失败')
-    }
+    loadError.value = e.response?.status === 403 ? '当前角色无权限查看商单列表' : (e.response?.data?.message || '加载失败')
+    list.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -60,7 +58,7 @@ onMounted(load)
   <div>
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold">商单管理</h2>
-      <el-button type="primary" @click="goCreate">创建商单</el-button>
+      <el-button v-if="!loadError" type="primary" @click="goCreate">创建商单</el-button>
     </div>
 
     <!-- 筛选栏 -->
@@ -81,7 +79,15 @@ onMounted(load)
       </el-form-item>
     </el-form>
 
-    <el-table :data="list" v-loading="loading" stripe @row-click="goDetail" class="cursor-pointer">
+    <el-card v-if="loadError && !loading" class="mb-4">
+      <div class="text-center py-6">
+        <p class="text-sm text-red-500 mb-4">{{ loadError }}</p>
+        <el-button type="primary" plain @click="load">重试</el-button>
+      </div>
+    </el-card>
+
+    <template v-else>
+    <el-table :data="list" v-loading="loading" stripe @row-click="goDetail" class="cursor-pointer" empty-text="暂无商单">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="title" label="标题" min-width="180" />
       <el-table-column prop="category" label="分类" width="120" />
@@ -106,5 +112,6 @@ onMounted(load)
       :page-size="pageSize"
       @current-change="v => { page = v; load() }"
     />
+    </template>
   </div>
 </template>

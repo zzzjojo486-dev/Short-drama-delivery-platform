@@ -1,0 +1,302 @@
+[
+ {
+  "idx": 1311,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "        return Response({\"success\": False, \"message\": \"User ID required\"}, status=status.HTTP_400_BAD_REQUEST)",
+  "new": "        return Response({\"success\": True, \"message\": \"User ID required\"}, status=status.HTTP_400_BAD_REQUEST)"
+ },
+ {
+  "idx": 1316,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "        return Response({\"success\": True, \"message\": \"User ID required\"}, status=status.HTTP_400_BAD_REQUEST)",
+  "new": "        return fail(400, \"User ID required\")"
+ },
+ {
+  "idx": 1319,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": False, \"message\": \"帖子不存在\"}, status=status.HTTP_400_BAD_REQUEST)",
+  "new": "            return fail(404, \"帖子不存在\")"
+ },
+ {
+  "idx": 1320,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": True, \"message\": \"Unliked\"}, status=status.HTTP_200_OK)",
+  "new": "            return ok(message=\"Unliked\")"
+ },
+ {
+  "idx": 1321,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": True, \"message\": \"Liked\"}, status=status.HTTP_200_OK)",
+  "new": "            return ok(message=\"Liked\")"
+ },
+ {
+  "idx": 1332,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "        return Response({\"success\": True, \"message\": \"Visibility updated successfully\"}, status=status.HTTP_200_OK)",
+  "new": "        return ok(message=\"Visibility updated successfully\")"
+ },
+ {
+  "idx": 1333,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": True, \"message\": \"Uncollected\"}, status=status.HTTP_200_OK)",
+  "new": "            return ok(message=\"Uncollected\")"
+ },
+ {
+  "idx": 1334,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": True, \"message\": \"Collected\"}, status=status.HTTP_200_OK)",
+  "new": "            return ok(message=\"Collected\")"
+ },
+ {
+  "idx": 1335,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "        return Response([_comment_to_dict(c) for c in qs])",
+  "new": "        return ok([_comment_to_dict(c) for c in qs])"
+ },
+ {
+  "idx": 1336,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": False, \"message\": \"评论内容不能为空\"}, status=status.HTTP_200_OK)",
+  "new": "            return fail(400, \"评论内容不能为空\")"
+ },
+ {
+  "idx": 1337,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": False, \"message\": \"评论内容不能超过1000个字符\"}, status=status.HTTP_200_OK)",
+  "new": "            return fail(400, \"评论内容不能超过1000个字符\")"
+ },
+ {
+  "idx": 1338,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": False, \"message\": \"帖子不存在\"}, status=status.HTTP_200_OK)",
+  "new": "            return fail(404, \"帖子不存在\")"
+ },
+ {
+  "idx": 1339,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "        return Response({\"success\": True, \"message\": \"评论成功\"}, status=status.HTTP_200_OK)",
+  "new": "        return ok(message=\"评论成功\")"
+ },
+ {
+  "idx": 1340,
+  "file": "d:/Short drama delivery platform/django_backend/apps/post/views.py",
+  "old": "            return Response({\"success\": False, \"message\": \"评论不存在\"}, status=status.HTTP_400_BAD_REQUEST)",
+  "new": "            return fail(404, \"评论不存在\")"
+ },
+ {
+  "idx": 1375,
+  "file": "d:/Short drama delivery platform/django_backend/apps/users/views.py",
+  "old": "        try:\n            user = User.objects.get(id=user_id)\n        except User.DoesNotExist:\n            raise NotFound(detail=\"User not found\")",
+  "new": "        try:\n            user = User.objects.get(id=user_id)\n        except User.DoesNotExist:\n            return fail(404, \"User not found\")"
+ },
+ {
+  "idx": 1376,
+  "file": "d:/Short drama delivery platform/django_backend/apps/users/views.py",
+  "old": "from django.http import FileResponse, JsonResponse, StreamingHttpResponse\nfrom rest_framework.exceptions import NotFound\nfrom rest_framework.views import APIView",
+  "new": "from django.http import FileResponse, JsonResponse, StreamingHttpResponse\nfrom rest_framework.views import APIView"
+ },
+ {
+  "idx": 1413,
+  "file": "d:/Short drama delivery platform/frontend/src/views/LoginView.vue",
+  "old": "  try {\n    if (isLogin.value) {\n      const res = await login(form.value.username, form.value.password)\n      if (res.data.success) {\n        userStore.login(res.data.user, res.data.token)\n        ElMessage.success('登录成功')\n        router.push('/')\n      } else {\n        ElMessage.error(res.data.message)\n      }\n    } else {\n      const res = await register(form.value.username, form.value.password, form.value.nickname, avatarFile.value)\n      if (res.data.success) {\n        ElMessage.success('注册成功，请登录')\n        isLogin.value = true\n        // Reset form\n        form.value = { username: '', password: '', nickname: '' }\n        avatarFile.value = null\n        avatarPreview.value = null\n      } else {\n        ElMessage.error(res.data.message)\n      }\n    }\n  } catch (e) {\n    ElMessage.error('操作失败，请检查网络')\n  }",
+  "new": "  try {\n    if (isLogin.value) {\n      const res = await login(form.value.username, form.value.password)\n      if (res.data.code === 200) {\n        userStore.login(res.data.data.user, res.data.data.token)\n        ElMessage.success('登录成功')\n        router.push('/')\n      }\n    } else {\n      const res = await register(form.value.username, form.value.password, form.value.nickname, avatarFile.value)\n      if (res.data.code === 200) {\n        ElMessage.success('注册成功，请登录')\n        isLogin.value = true\n        // Reset form\n        form.value = { username: '', password: '', nickname: '' }\n        avatarFile.value = null\n        avatarPreview.value = null\n      }\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1422,
+  "file": "D:\\Short drama delivery platform\\frontend\\src\\views\\admin\\AdminLoginView.vue",
+  "old": "    const res = await login(form.value.username, form.value.password)\n    if (res.data.success) {\n      const role = res.data.user.role\n      if (!STAFF_ROLES.includes(role)) {\n        ElMessage.error('该账号无后台权限')\n        return\n      }\n      // 只写 admin 桶,绝不触碰前台的 token\n      adminStore.login(res.data.user, res.data.token)\n      ElMessage.success('登录成功')\n      router.push('/admin/users')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('登录失败，请检查网络')",
+  "new": "    const res = await login(form.value.username, form.value.password)\n    if (res.data.code === 200) {\n      const role = res.data.data.user.role\n      if (!STAFF_ROLES.includes(role)) {\n        ElMessage.error('该账号无后台权限')\n        return\n      }\n      // 只写 admin 桶,绝不触碰前台的 token\n      adminStore.login(res.data.data.user, res.data.data.token)\n      ElMessage.success('登录成功')\n      router.push('/admin/users')\n    }\n  } catch (e) {"
+ },
+ {
+  "idx": 1441,
+  "file": "d:/Short drama delivery platform/frontend/src/views/HomeView.vue",
+  "old": "    const res = await getPosts(20, 0, searchQuery, activeCategory.value)\n    posts.value = res.data",
+  "new": "    const res = await getPosts(20, 0, searchQuery, activeCategory.value)\n    if (res.data.code === 200) {\n      posts.value = res.data.data\n    }"
+ },
+ {
+  "idx": 1442,
+  "file": "d:/Short drama delivery platform/frontend/src/views/MessageIndexView.vue",
+  "old": "    const res = await getConversations(userStore.user.id)\n    conversations.value = res.data.conversations",
+  "new": "    const res = await getConversations(userStore.user.id)\n    if (res.data.code === 200) {\n      conversations.value = res.data.data.conversations\n    }"
+ },
+ {
+  "idx": 1443,
+  "file": "d:/Short drama delivery platform/frontend/src/views/MessageIndexView.vue",
+  "old": "    const res = await getNotifications(userStore.user.id)\n    notifications.value = res.data.notifications",
+  "new": "    const res = await getNotifications(userStore.user.id)\n    if (res.data.code === 200) {\n      notifications.value = res.data.data.notifications\n    }"
+ },
+ {
+  "idx": 1444,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ChatView.vue",
+  "old": "    const res = await getConversation(targetUserId, userStore.user.id)\n    // If new messages arrived, update and scroll\n    if (res.data.messages.length !== messages.value.length || (messages.value.length > 0 && res.data.messages[res.data.messages.length-1].id !== messages.value[messages.value.length-1].id)) {\n        messages.value = res.data.messages\n        scrollToBottom()\n        // Mark as read if last message is from them\n        if (messages.value.length > 0) {\n            const lastMsg = messages.value[messages.value.length - 1]\n            if (lastMsg.sender_id == targetUserId && !lastMsg.is_read) {\n                 await markMessagesRead(userStore.user.id, targetUserId)\n            }\n        }\n    }",
+  "new": "    const res = await getConversation(targetUserId, userStore.user.id)\n    // If new messages arrived, update and scroll\n    if (res.data.code === 200) {\n      const msgs = res.data.data.messages\n      if (msgs.length !== messages.value.length || (messages.value.length > 0 && msgs[msgs.length-1].id !== messages.value[messages.value.length-1].id)) {\n          messages.value = msgs\n          scrollToBottom()\n          // Mark as read if last message is from them\n          if (messages.value.length > 0) {\n              const lastMsg = messages.value[messages.value.length - 1]\n              if (lastMsg.sender_id == targetUserId && !lastMsg.is_read) {\n                   await markMessagesRead(userStore.user.id, targetUserId)\n              }\n          }\n      }\n    }"
+ },
+ {
+  "idx": 1445,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ChatView.vue",
+  "old": "    const res = await getPublicUserProfile(targetUserId)\n    targetUser.value = res.data.user",
+  "new": "    const res = await getPublicUserProfile(targetUserId)\n    if (res.data.code === 200) {\n      targetUser.value = res.data.data.user\n    }"
+ },
+ {
+  "idx": 1446,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ChatView.vue",
+  "old": "    const res = await sendMessage(userStore.user.id, targetUserId, content)\n    if (res.data.success) {\n      await fetchMessages()\n    } else {\n      ElMessage.error(res.data.message || '发送失败')\n      newMessage.value = content // Restore on fail\n    }",
+  "new": "    const res = await sendMessage(userStore.user.id, targetUserId, content)\n    if (res.data.code === 200) {\n      await fetchMessages()\n    } else {\n      newMessage.value = content // Restore on fail (toast 由拦截器统一弹)\n    }"
+ },
+ {
+  "idx": 1477,
+  "file": "d:/Short drama delivery platform/frontend/src/components/NavBar.vue",
+  "old": "      const res = await getUnreadCount(userStore.user.id)\n      unreadCount.value = res.data.count",
+  "new": "      const res = await getUnreadCount(userStore.user.id)\n      if (res.data.code === 200) {\n        unreadCount.value = res.data.data.count\n      }"
+ },
+ {
+  "idx": 1478,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PublishView.vue",
+  "old": "    const res = await createPost(formData)\n    if (res.data.success) {\n      ElMessage.success('发布成功')\n      router.push('/')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('发布失败: ' + (e.response?.data?.detail || e.message))\n  }",
+  "new": "    const res = await createPost(formData)\n    if (res.data.code === 200) {\n      ElMessage.success('发布成功')\n      router.push('/')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1479,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await getComments(id, userId)\n    comments.value = res.data",
+  "new": "    const res = await getComments(id, userId)\n    if (res.data.code === 200) {\n      comments.value = res.data.data\n    }"
+ },
+ {
+  "idx": 1480,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await toggleCommentLike(comment.id, userStore.user.id)\n    if (res.data.success) {\n        comment.is_liked = !comment.is_liked\n        comment.likes_count = (comment.likes_count || 0) + (comment.is_liked ? 1 : -1)\n    } else {\n        ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('操作失败')\n  }",
+  "new": "    const res = await toggleCommentLike(comment.id, userStore.user.id)\n    if (res.data.code === 200) {\n        comment.is_liked = !comment.is_liked\n        comment.likes_count = (comment.likes_count || 0) + (comment.is_liked ? 1 : -1)\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1481,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await followUser(post.value.user_id, userStore.user.id)\n    if (res.data.success) {\n      isFollowing.value = true\n      ElMessage.success('关注成功')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('关注失败')\n  }",
+  "new": "    const res = await followUser(post.value.user_id, userStore.user.id)\n    if (res.data.code === 200) {\n      isFollowing.value = true\n      ElMessage.success('关注成功')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1482,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await unfollowUser(post.value.user_id, userStore.user.id)\n    if (res.data.success) {\n      isFollowing.value = false\n      ElMessage.success('已取消关注')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('取消关注失败')\n  }",
+  "new": "    const res = await unfollowUser(post.value.user_id, userStore.user.id)\n    if (res.data.code === 200) {\n      isFollowing.value = false\n      ElMessage.success('已取消关注')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1483,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await toggleLike(currentPostId, userStore.user.id)\n    if (res.data.success) {\n      isLiked.value = !isLiked.value\n      post.value.likes_count += isLiked.value ? 1 : -1\n      ElMessage.success(isLiked.value ? '点赞成功' : '已取消点赞')\n    }\n  } catch (e) {\n    ElMessage.error('操作失败')\n  }",
+  "new": "    const res = await toggleLike(currentPostId, userStore.user.id)\n    if (res.data.code === 200) {\n      isLiked.value = !isLiked.value\n      post.value.likes_count += isLiked.value ? 1 : -1\n      ElMessage.success(isLiked.value ? '点赞成功' : '已取消点赞')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1484,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await toggleCollection(currentPostId, userStore.user.id)\n    if (res.data.success) {\n      isCollected.value = !isCollected.value\n      ElMessage.success(isCollected.value ? '收藏成功' : '已取消收藏')\n    }\n  } catch (e) {\n    ElMessage.error('操作失败')\n  }",
+  "new": "    const res = await toggleCollection(currentPostId, userStore.user.id)\n    if (res.data.code === 200) {\n      isCollected.value = !isCollected.value\n      ElMessage.success(isCollected.value ? '收藏成功' : '已取消收藏')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1485,
+  "file": "d:/Short drama delivery platform/frontend/src/views/PostDetailView.vue",
+  "old": "    const res = await addComment(currentPostId, userStore.user.id, newComment.value)\n    if (res.data.success) {\n      ElMessage.success('评论成功')\n      newComment.value = ''\n      fetchComments()\n    }\n  } catch (e) {\n    ElMessage.error('评论失败')\n  }",
+  "new": "    const res = await addComment(currentPostId, userStore.user.id, newComment.value)\n    if (res.data.code === 200) {\n      ElMessage.success('评论成功')\n      newComment.value = ''\n      fetchComments()\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1518,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await getFollowCounts(user.value.id)\n    followCounts.value = res.data.counts",
+  "new": "    const res = await getFollowCounts(user.value.id)\n    if (res.data.code === 200) {\n      followCounts.value = res.data.data.counts\n    }"
+ },
+ {
+  "idx": 1519,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "      const res = await checkIsFollowing(user.value.id, userStore.user.id)\n      isFollowing.value = res.data.is_following",
+  "new": "      const res = await checkIsFollowing(user.value.id, userStore.user.id)\n      if (res.data.code === 200) {\n        isFollowing.value = res.data.data.is_following\n      }"
+ },
+ {
+  "idx": 1520,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "      const res = await getUserPosts(user.value.id, currentUserId)\n      posts.value = res.data",
+  "new": "      const res = await getUserPosts(user.value.id, currentUserId)\n      if (res.data.code === 200) {\n        posts.value = res.data.data\n      }"
+ },
+ {
+  "idx": 1521,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "      const res = await getUserLikedPosts(user.value.id)\n      likedPosts.value = res.data",
+  "new": "      const res = await getUserLikedPosts(user.value.id)\n      if (res.data.code === 200) {\n        likedPosts.value = res.data.data\n      }"
+ },
+ {
+  "idx": 1522,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "      const res = await getUserCollectedPosts(user.value.id)\n      collectedPosts.value = res.data",
+  "new": "      const res = await getUserCollectedPosts(user.value.id)\n      if (res.data.code === 200) {\n        collectedPosts.value = res.data.data\n      }"
+ },
+ {
+  "idx": 1523,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "      const res = await getPublicUserProfile(routeId)\n      user.value = res.data.user",
+  "new": "      const res = await getPublicUserProfile(routeId)\n      if (res.data.code === 200) {\n        user.value = res.data.data.user\n      }"
+ },
+ {
+  "idx": 1524,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await updateProfile(formData)\n    if (res.data.success) {\n      userStore.login(res.data.user)\n      user.value = res.data.user\n      isEditing.value = false\n      ElMessage.success('保存成功')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('保存失败')\n  }",
+  "new": "    const res = await updateProfile(formData)\n    if (res.data.code === 200) {\n      userStore.login(res.data.data.user)\n      user.value = res.data.data.user\n      isEditing.value = false\n      ElMessage.success('保存成功')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1525,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await deletePost(postId, userStore.user.id)\n    if (res.data.success) {\n      ElMessage.success('删除成功')\n      fetchUserContent()\n    } else {\n      ElMessage.error(res.data.message || '删除失败')\n    }\n  } catch (e) {\n    if (e !== 'cancel') {\n      console.error(e)\n      ElMessage.error('操作失败')\n    }\n  }",
+  "new": "    const res = await deletePost(postId, userStore.user.id)\n    if (res.data.code === 200) {\n      ElMessage.success('删除成功')\n      fetchUserContent()\n    }\n  } catch (e) {\n    if (e !== 'cancel') {\n      console.error(e)\n    }\n  }"
+ },
+ {
+  "idx": 1526,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await updatePostVisibility(postId, userStore.user.id, newStatus)\n    if (res.data.success) {\n      ElMessage.success(newStatus ? '已设为仅自己可见' : '已设为公开')\n      const post = posts.value.find(p => p.id === postId)\n      if (post) {\n        post.is_private = newStatus\n      }\n    } else {\n      ElMessage.error(res.data.message || '操作失败')\n    }\n  } catch (e) {\n    console.error(e)\n    ElMessage.error('操作失败')\n  }",
+  "new": "    const res = await updatePostVisibility(postId, userStore.user.id, newStatus)\n    if (res.data.code === 200) {\n      ElMessage.success(newStatus ? '已设为仅自己可见' : '已设为公开')\n      const post = posts.value.find(p => p.id === postId)\n      if (post) {\n        post.is_private = newStatus\n      }\n    }\n  } catch (e) {\n    console.error(e)\n  }"
+ },
+ {
+  "idx": 1527,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await followUser(user.value.id, userStore.user.id)\n    if (res.data.success) {\n      isFollowing.value = true\n      followCounts.value.followers++ // Optimistic update\n      ElMessage.success('关注成功')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('关注失败')\n  }",
+  "new": "    const res = await followUser(user.value.id, userStore.user.id)\n    if (res.data.code === 200) {\n      isFollowing.value = true\n      followCounts.value.followers++ // Optimistic update\n      ElMessage.success('关注成功')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1528,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    const res = await unfollowUser(user.value.id, userStore.user.id)\n    if (res.data.success) {\n      isFollowing.value = false\n      followCounts.value.followers-- // Optimistic update\n      ElMessage.success('已取消关注')\n    } else {\n      ElMessage.error(res.data.message)\n    }\n  } catch (e) {\n    ElMessage.error('取消关注失败')\n  }",
+  "new": "    const res = await unfollowUser(user.value.id, userStore.user.id)\n    if (res.data.code === 200) {\n      isFollowing.value = false\n      followCounts.value.followers-- // Optimistic update\n      ElMessage.success('已取消关注')\n    }\n  } catch (e) {}"
+ },
+ {
+  "idx": 1529,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "    // Response format: { success: true, followers: [...] } or { success: true, following: [...] }\n    followList.value = type === 'followers' ? res.data.followers : res.data.following",
+  "new": "    // Response format: code 200 时 data 为 {followers: [...]} 或 {following: [...]}\n    if (res.data.code === 200) {\n      followList.value = type === 'followers' ? res.data.data.followers : res.data.data.following\n    }"
+ },
+ {
+  "idx": 1530,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "        const res = await unfollowUser(item.id, userStore.user.id)\n        if (res.data.success) {",
+  "new": "        const res = await unfollowUser(item.id, userStore.user.id)\n        if (res.data.code === 200) {"
+ },
+ {
+  "idx": 1531,
+  "file": "d:/Short drama delivery platform/frontend/src/views/ProfileView.vue",
+  "old": "        const res = await followUser(item.id, userStore.user.id)\n        if (res.data.success) {",
+  "new": "        const res = await followUser(item.id, userStore.user.id)\n        if (res.data.code === 200) {"
+ },
+ {
+  "idx": 1601,
+  "file": "d:/Short drama delivery platform/frontend/src/views/admin/AdminUsers.vue",
+  "old": "    const res = await getAdminUsers()\n    users.value = res.data.users || []",
+  "new": "    const res = await getAdminUsers()\n    users.value = res.data.data.users || []"
+ },
+ {
+  "idx": 1602,
+  "file": "d:/Short drama delivery platform/frontend/src/views/admin/AdminReviews.vue",
+  "old": "    const res = await getPendingDeliveries()\n    deliveries.value = res.data.deliveries || []",
+  "new": "    const res = await getPendingDeliveries()\n    deliveries.value = res.data.data.deliveries || []"
+ },
+ {
+  "idx": 1630,
+  "file": "d:/Short drama delivery platform/django_backend/apps/users/tests.py",
+  "old": "    def test_login_success(self):\n        client = APIClient()\n        resp =client.post(\"/api/login\",{\"username\":\"zzy\",\"password\":\"zzy123456\"},format=\"json\")\n        data = resp.json()\n        self.assertEqual(resp.status_code, 200)\n        self.assertTrue(data[\"success\"],True)\n        self.assertIn( \"token\",data)\n\n    def test_login_wrong_pwd(self):\n        \"\"\"错误密码\"\"\"\n        client = APIClient()\n        resp = client.post(\"/api/login\",{\"username\":\"zzy\",\"password\":\"123\"},format=\"json\")\n        data = resp.json()\n        self.assertFalse(data[\"success\"])\n        self.assertIn(\"用户名或密码错误\",data[\"message\"])\n\n    def test_login_wrong_username(self):\n        \"\"\"不存在的账号\"\"\"\n        client = APIClient()\n        resp = client.post(\"/api/login\",{\"username\":\"zz33y\",\"password\":\"1323zt\"},format=\"json\")\n        data = resp.json()\n        self.assertFalse(data[\"success\"])\n        self.assertIn(\"用户名或密码错误\",data[\"message\"])\n\n    def test_login_missing_field(self):\n        \"\"\"缺少 password:校验失败。\"\"\"\n\n        client = APIClient()\n        resp = client.post(\"/api/login\", {\"username\": \"zzy\"}, format=\"json\")\n        data = resp.json()\n        self.assertFalse(data[\"success\"])",
+  "new": "    def test_login_success(self):\n        client = APIClient()\n        resp = client.post(\"/api/login\", {\"username\":\"zzy\",\"password\":\"zzy123456\"}, format=\"json\")\n        data = resp.json()\n        self.assertEqual(resp.status_code, 200)\n        self.assertEqual(data[\"code\"], 200)\n        self.assertIn(\"token\", data[\"data\"])\n\n    def test_login_wrong_pwd(self):\n        \"\"\"错误密码\"\"\"\n        client = APIClient()\n        resp = client.post(\"/api/login\", {\"username\":\"zzy\",\"password\":\"123\"}, format=\"json\")\n        data = resp.json()\n        self.assertEqual(resp.status_code, 400)\n        self.assertEqual(data[\"code\"], 400)\n        self.assertIn(\"用户名或密码错误\", data[\"message\"])\n\n    def test_login_wrong_username(self):\n        \"\"\"不存在的账号\"\"\"\n        client = APIClient()\n        resp = client.post(\"/api/login\", {\"username\":\"zz33y\",\"password\":\"1323zt\"}, format=\"json\")\n        data = resp.json()\n        self.assertEqual(resp.status_code, 400)\n        self.assertEqual(data[\"code\"], 400)\n        self.assertIn(\"用户名或密码错误\", data[\"message\"])\n\n    def test_login_missing_field(self):\n        \"\"\"缺少 password:校验失败。\"\"\"\n\n        client = APIClient()\n        resp = client.post(\"/api/login\", {\"username\": \"zzy\"}, format=\"json\")\n        data = resp.json()\n        self.assertEqual(resp.status_code, 400)\n        self.assertNotEqual(data[\"code\"], 200)"
+ }
+]

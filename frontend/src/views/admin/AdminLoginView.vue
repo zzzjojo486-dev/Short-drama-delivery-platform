@@ -1,12 +1,14 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { adminLogin } from '../../api'
 import { useAdminStore } from '../../stores/admin'
+import { safeRedirect } from '../../utils/redirect'
 
 const adminStore = useAdminStore()
 const router = useRouter()
+const route = useRoute()
 const form = ref({ username: '', password: '' })
 const loading = ref(false)
 
@@ -21,18 +23,27 @@ async function handleSubmit() {
   loading.value = true
   try {
     const res = await adminLogin(form.value.username, form.value.password)
-    if (res.data.code === 200) {
-      const role = res.data.data.user.role
-      if (!STAFF_ROLES.includes(role)) {
-        ElMessage.error('该账号无后台权限')
-        return
-      }
-      // 只写 admin 桶,绝不触碰前台的 token
-      adminStore.login(res.data.data.user, res.data.data.token)
-      ElMessage.success('登录成功')
-      router.push('/admin/users')
+    const { user, token } = res.data.data || {}
+    if (!user || !token) {
+      ElMessage.error('登录响应缺少 user/token 字段，请联系管理员')
+      return
     }
+    const role = user.role
+    if (!STAFF_ROLES.includes(role)) {
+      ElMessage.error('该账号无后台权限')
+      return
+    }
+    // 只写 admin 桶,绝不触碰前台的 token
+    adminStore.login(user, token)
+    ElMessage.success('登录成功')
+    const fallback = role === 2 ? '/admin/reviews' : '/admin/users'
+    router.replace(safeRedirect(route.query.redirect, fallback, '/admin'))
   } catch (e) {
+    // API 错误已由拦截器统一提示;此处只暴露页面级异常,避免点击后静默无响应
+    if (!e?.isAxiosError && !e?.response) {
+      console.error('[admin-login] unexpected error:', e)
+      ElMessage.error('登录失败，请刷新页面重试')
+    }
   } finally {
     loading.value = false
   }

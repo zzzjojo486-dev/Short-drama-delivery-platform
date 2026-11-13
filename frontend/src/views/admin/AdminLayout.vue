@@ -1,9 +1,16 @@
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '../../stores/admin'
 
 const router = useRouter()
 const adminStore = useAdminStore()
+
+// 角色:0 超管 / 1 运营 / 2 审核员;菜单与后端接口角色一致
+const role = computed(() => adminStore.user?.role)
+const isOperator = computed(() => role.value === 0 || role.value === 1)
+const isReviewer = computed(() => role.value === 0 || role.value === 2)
+const roleLabel = computed(() => ({ 0: '超管', 1: '运营', 2: '审核员' }[role.value] || '后台'))
 
 function goHome() {
   router.push('/')
@@ -22,9 +29,9 @@ function logout() {
     <el-aside width="200px" class="admin-aside">
       <div class="admin-brand">短剧交付平台 · 后台</div>
       <el-menu router :default-active="$route.path" class="admin-menu">
-        <el-menu-item index="/admin/users">用户管理</el-menu-item>
-        <el-menu-item index="/admin/reviews">审核管理</el-menu-item>
-        <el-menu-item index="/admin/orders">商单管理</el-menu-item>
+        <el-menu-item v-if="isOperator" index="/admin/users">用户管理</el-menu-item>
+        <el-menu-item v-if="isReviewer" index="/admin/reviews">审核管理</el-menu-item>
+        <el-menu-item v-if="isOperator" index="/admin/orders">商单管理</el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -32,6 +39,7 @@ function logout() {
       <!-- 顶栏 -->
       <el-header class="admin-header">
         <div class="flex items-center gap-4">
+          <span class="text-sm text-gray-500">{{ adminStore.user?.nickname || adminStore.user?.username }} · {{ roleLabel }}</span>
           <el-button size="small" @click="goHome">返回前台</el-button>
           <el-button size="small" type="danger" plain @click="logout">退出登录</el-button>
         </div>

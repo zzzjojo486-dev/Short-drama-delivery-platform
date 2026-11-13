@@ -37,13 +37,12 @@ def verify_token(token: str) -> Optional[dict]:
 
 
 class BearerTokenAuthentication(authentication.BaseAuthentication):
-    """解析 Authorization: Bearer <token>(兼容 Token <token>),注入 request.user。
-
-    原 FastAPI 接口从不强制鉴权(全局 AllowAny),该认证仅在请求带头时生效;
-    无效令牌返回 401 {"detail": "无效的认证令牌"},与原 jwt_auth.py 行为一致。
-    """
+    """解析 Authorization: Bearer <token>(兼容 Token <token>)。"""
 
     keyword = "Bearer"
+
+    def authenticate_header(self, request):
+        return self.keyword
 
     def authenticate(self, request):
         header = authentication.get_authorization_header(request).decode("utf-8", errors="ignore")
@@ -59,7 +58,6 @@ class BearerTokenAuthentication(authentication.BaseAuthentication):
         if payload is None:
             raise exceptions.AuthenticationFailed("无效的认证令牌")
 
-        # python-jose 要求 sub 为字符串,签发时已转 str,这里转回 int
         try:
             user_id = int(payload.get("sub"))
         except (TypeError, ValueError):

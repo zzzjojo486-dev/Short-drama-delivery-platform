@@ -1,15 +1,17 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useUserStore } from '../stores/user'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { getImageUrl, getUnreadCount } from '../api'
 import { ElMessageBox } from 'element-plus'
 
 const userStore = useUserStore()
 const router = useRouter()
+const route = useRoute()
 const search = ref('')
 const unreadCount = ref(0)
 const pollInterval = ref(null)
+const ordersActive = computed(() => route.path.startsWith('/orders'))
 
 const handleLogout = () => {
   ElMessageBox.confirm(
@@ -93,6 +95,16 @@ onUnmounted(() => {
 
     <!-- Actions (Desktop Only) -->
     <div class="hidden md:flex items-center gap-6">
+      <button
+        class="flex items-center gap-1.5 text-sm font-medium transition-colors"
+        :class="ordersActive ? 'text-xhs-red' : 'text-gray-600 hover:text-gray-900'"
+        @click="router.push('/orders')"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.886 2.05-1.98 2.146-2.093.184-4.212.279-6.352.279-2.14 0-4.26-.095-6.352-.279-1.094-.096-1.98-1.052-1.98-2.146v-4.25m16.664 0a2.25 2.25 0 0 0-2.083-2.164 48.6 48.6 0 0 0-8.33 0 2.25 2.25 0 0 0-2.083 2.164m16.664 0v-2.106c0-1.094-.886-2.05-1.98-2.146a48.6 48.6 0 0 0-3.02-.196M3.586 14.15v-2.106c0-1.094.886-2.05 1.98-2.146 1.006-.088 2.013-.153 3.02-.196m8.33 0a48.6 48.6 0 0 0-8.33 0m8.33 0v-3.375c0-.621-.504-1.125-1.125-1.125h-2.25c-.621 0-1.125.504-1.125 1.125v3.375" />
+        </svg>
+        <span>商单</span>
+      </button>
       <template v-if="userStore.user">
         <button class="flex items-center gap-1.5 bg-xhs-red text-white px-4 py-1.5 rounded-full text-sm font-medium hover:bg-red-600 transition-colors" @click="router.push('/publish')">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
